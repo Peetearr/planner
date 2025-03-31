@@ -1,0 +1,16 @@
+name: cem_mpc
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - numpy>=1.21.0
+  - matplotlib>=3.5.0
+  - mujoco=3.2.7
+  - mypy
+  - pip:
+    - dm_control
+    - dm_env
+    - gymnasium
+    - gymnasium-robotics
+  

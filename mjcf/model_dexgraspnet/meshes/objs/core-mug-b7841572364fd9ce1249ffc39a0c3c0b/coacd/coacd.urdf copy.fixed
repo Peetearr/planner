@@ -1,0 +1,570 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="root">
+  <link name="link_coacd_convex_piece_0">
+    <inertial>
+      <origin xyz="0.22933407214298357 0.5652514299892758 0.5824114249802088" rpy="0 0 0" />
+      <inertia ixx="7.589380258306473e-05" ixy="1.4571383125973336e-07" ixz="4.848693184582634e-05" iyy="0.00016017300730273958" iyz="2.689110083979422e-07" izz="0.0001545409876570255" />
+    <mass value="0.16630142903249343" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_0.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_0.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="link_coacd_convex_piece_1">
+    <inertial>
+      <origin xyz="0.44660412940341254 0.5653077335851505 0.330765099578549" rpy="0 0 0" />
+      <inertia ixx="9.258048619668544e-05" ixy="-3.057737406734519e-07" ixz="2.5286023015332277e-05" iyy="9.377274160157333e-05" iyz="6.825231449176898e-08" izz="5.9896798718372946e-05" />
+    <mass value="0.13922492691752653" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_1.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_1.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_1_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_0" />
+    <child link="link_coacd_convex_piece_1" />
+  </joint>
+  <link name="link_coacd_convex_piece_2">
+    <inertial>
+      <origin xyz="0.37763072678863413 -0.1061799356945313 0.36962861300197336" rpy="0 0 0" />
+      <inertia ixx="0.014935998751774728" ixy="-4.899146878582696e-05" ixz="0.0004535303852034704" iyy="0.0026629980515792545" iyz="-6.502594955529878e-05" izz="0.01393071075687961" />
+    <mass value="1.8407915659992158" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_2.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_2.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_2_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_1" />
+    <child link="link_coacd_convex_piece_2" />
+  </joint>
+  <link name="link_coacd_convex_piece_3">
+    <inertial>
+      <origin xyz="0.14651345362241958 -0.12192313584836219 0.44199108598638337" rpy="0 0 0" />
+      <inertia ixx="0.014174518310620193" ixy="-1.5214905374697895e-05" ixz="6.070730880255049e-05" iyy="0.002944371704284802" iyz="-0.00033042921365959276" izz="0.011994647629357987" />
+    <mass value="1.7177043963685463" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_3.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_3.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_3_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_2" />
+    <child link="link_coacd_convex_piece_3" />
+  </joint>
+  <link name="link_coacd_convex_piece_4">
+    <inertial>
+      <origin xyz="0.45707595862115996 0.5655272235233566 0.011155523612287244" rpy="0 0 0" />
+      <inertia ixx="0.00011106056037400378" ixy="2.0746799918097344e-07" ixz="-2.5084549452938327e-05" iyy="0.00010821374701549744" iyz="1.974125007739205e-08" izz="5.985008303769409e-05" />
+    <mass value="0.14832710134884838" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_4.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_4.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_4_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_3" />
+    <child link="link_coacd_convex_piece_4" />
+  </joint>
+  <link name="link_coacd_convex_piece_5">
+    <inertial>
+      <origin xyz="0.23634965601857733 0.5654940776786873 -0.26636714237536274" rpy="0 0 0" />
+      <inertia ixx="8.758512866087562e-05" ixy="1.7881069455118713e-07" ixz="-6.04645491907843e-05" iyy="0.00018551590753163104" iyz="-9.530193405458097e-07" izz="0.00017242016957858593" />
+    <mass value="0.17615637783801139" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_5.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_5.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_5_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_4" />
+    <child link="link_coacd_convex_piece_5" />
+  </joint>
+  <link name="link_coacd_convex_piece_6">
+    <inertial>
+      <origin xyz="0.37273561082872764 -0.10680897510566505 -0.03839300802686995" rpy="0 0 0" />
+      <inertia ixx="0.01840659903392924" ixy="-7.151962190293706e-05" ixz="-0.0006052976268873472" iyy="0.0038303001522173585" iyz="9.493963078519257e-05" izz="0.016853622719931967" />
+    <mass value="2.2121406359081495" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_6.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_6.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_6_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_5" />
+    <child link="link_coacd_convex_piece_6" />
+  </joint>
+  <link name="link_coacd_convex_piece_7">
+    <inertial>
+      <origin xyz="0.13897378284854614 -0.12341415386898519 -0.1129142806694605" rpy="0 0 0" />
+      <inertia ixx="0.014702891672812277" ixy="-9.868491713579692e-06" ixz="-5.8350092094608614e-05" iyy="0.0034204147912790107" iyz="0.00038485585878589735" izz="0.011939966853341501" />
+    <mass value="1.7303578834939823" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_7.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_7.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_7_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_6" />
+    <child link="link_coacd_convex_piece_7" />
+  </joint>
+  <link name="link_coacd_convex_piece_8">
+    <inertial>
+      <origin xyz="-0.023772132090159295 -0.011052803371778436 0.641819598934639" rpy="0 0 0" />
+      <inertia ixx="0.004245311542367859" ixy="6.070117736029669e-07" ixz="-2.149955003844786e-06" iyy="0.00010257434299056241" iyz="-1.0653494028895193e-05" izz="0.0042414998242066276" />
+    <mass value="0.430872274798771" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_8.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_8.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_8_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_7" />
+    <child link="link_coacd_convex_piece_8" />
+  </joint>
+  <link name="link_coacd_convex_piece_9">
+    <inertial>
+      <origin xyz="-0.2829434432673573 -0.10716096115013861 -0.13342272597473603" rpy="0 0 0" />
+      <inertia ixx="0.01986159334209255" ixy="0.0001288155189352238" ixz="0.0007988967370899103" iyy="0.0044644974553403015" iyz="0.00012788871694043588" izz="0.019939508488543985" />
+    <mass value="2.4881850394463636" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_9.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_9.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_9_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_8" />
+    <child link="link_coacd_convex_piece_9" />
+  </joint>
+  <link name="link_coacd_convex_piece_10">
+    <inertial>
+      <origin xyz="-0.02475409346650141 -0.14138805360625642 0.4012938440294636" rpy="0 0 0" />
+      <inertia ixx="0.005343943289857243" ixy="3.039971174013966e-07" ixz="1.3102055165629956e-09" iyy="0.0005741455738470722" iyz="-8.571090277276856e-05" izz="0.0049500506610619015" />
+    <mass value="0.7734252112848227" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_10.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_10.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_10_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_9" />
+    <child link="link_coacd_convex_piece_10" />
+  </joint>
+  <link name="link_coacd_convex_piece_11">
+    <inertial>
+      <origin xyz="-0.024786153045950728 -0.15822351551384314 0.05643966481694172" rpy="0 0 0" />
+      <inertia ixx="0.005023440704336045" ixy="1.1593104275414538e-06" ixz="-1.492106343331241e-07" iyy="0.0005967369498746143" iyz="3.9020736640645796e-05" izz="0.004605909568466287" />
+    <mass value="0.7691126183661595" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_11.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_11.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_11_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_10" />
+    <child link="link_coacd_convex_piece_11" />
+  </joint>
+  <link name="link_coacd_convex_piece_12">
+    <inertial>
+      <origin xyz="-0.02361489830940004 0.5520810742837531 -0.33801614692308835" rpy="0 0 0" />
+      <inertia ixx="2.531438768916595e-05" ixy="9.883314498102907e-08" ixz="6.639331672073692e-07" iyy="1.6099017829761318e-05" iyz="4.802939490722996e-07" izz="2.4708885779665783e-05" />
+    <mass value="0.06854314999396366" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_12.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_12.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_12_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_11" />
+    <child link="link_coacd_convex_piece_12" />
+  </joint>
+  <link name="link_coacd_convex_piece_13">
+    <inertial>
+      <origin xyz="-0.024079090425517244 -0.11803039539361836 -0.26429360212920294" rpy="0 0 0" />
+      <inertia ixx="0.005138438211314059" ixy="-4.926501311562344e-07" ixz="4.804946961933418e-06" iyy="0.0004292099841764173" iyz="4.64820472023265e-05" izz="0.004873276015767178" />
+    <mass value="0.7124863198886543" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_13.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_13.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_13_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_12" />
+    <child link="link_coacd_convex_piece_13" />
+  </joint>
+  <link name="link_coacd_convex_piece_14">
+    <inertial>
+      <origin xyz="-7.203168205561234e-06 0.44532984449607294 -0.5710744268407655" rpy="0 0 0" />
+      <inertia ixx="5.635951456603406e-05" ixy="-7.292118195054484e-09" ixz="6.112660884962848e-09" iyy="2.9125226135341643e-05" iyz="-2.0368898911176606e-05" izz="3.355409185285636e-05" />
+    <mass value="0.07075508852962288" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_14.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_14.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_14_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_13" />
+    <child link="link_coacd_convex_piece_14" />
+  </joint>
+  <link name="link_coacd_convex_piece_15">
+    <inertial>
+      <origin xyz="1.2910578444272631e-05 0.13329343856021542 -0.5703531703653257" rpy="0 0 0" />
+      <inertia ixx="5.334716263141683e-05" ixy="-1.7024617698341385e-08" ixz="-2.1449603762723178e-08" iyy="2.838707717128016e-05" iyz="1.908825125405565e-05" izz="3.127548690720809e-05" />
+    <mass value="0.06941850401901378" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_15.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_15.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_15_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_14" />
+    <child link="link_coacd_convex_piece_15" />
+  </joint>
+  <link name="link_coacd_convex_piece_16">
+    <inertial>
+      <origin xyz="-0.2957164813308528 0.5655085346357472 0.5272508032125601" rpy="0 0 0" />
+      <inertia ixx="0.00014952847089681927" ixy="-9.143974310362943e-07" ixz="-0.00010148366674560868" iyy="0.00026185631302633097" iyz="5.284901484986851e-07" izz="0.00020247163317411304" />
+    <mass value="0.20968367538369861" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_16.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_16.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_16_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_15" />
+    <child link="link_coacd_convex_piece_16" />
+  </joint>
+  <link name="link_coacd_convex_piece_17">
+    <inertial>
+      <origin xyz="-0.47803001101059467 0.5650053908086012 0.2070350890243316" rpy="0 0 0" />
+      <inertia ixx="9.938273017190283e-05" ixy="-2.0722853869524493e-08" ixz="-7.3623506111353005e-06" iyy="8.78564377928305e-05" iyz="1.0831378059652369e-08" izz="4.673113272340556e-05" />
+    <mass value="0.13704045330967324" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_17.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_17.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_17_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_16" />
+    <child link="link_coacd_convex_piece_17" />
+  </joint>
+  <link name="link_coacd_convex_piece_18">
+    <inertial>
+      <origin xyz="-0.2715572702241837 -0.1079638325796806 0.48363144712374306" rpy="0 0 0" />
+      <inertia ixx="0.015053204151986785" ixy="8.127913990361004e-05" ixz="-0.0005218451487525831" iyy="0.0028221899880935264" iyz="-7.298299834880388e-05" izz="0.015432310879569153" />
+    <mass value="1.9549244900847822" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_18.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_18.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_18_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_17" />
+    <child link="link_coacd_convex_piece_18" />
+  </joint>
+  <link name="link_coacd_convex_piece_19">
+    <inertial>
+      <origin xyz="-0.3317235606054246 -0.12214149283063558 0.18958822094630487" rpy="0 0 0" />
+      <inertia ixx="0.015366820072885971" ixy="0.00037631666840915075" ixz="-2.790148250214966e-05" iyy="0.0034185852736067085" iyz="-8.082849048434392e-06" izz="0.016915193042336418" />
+    <mass value="2.136911136537624" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_19.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_19.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_19_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_18" />
+    <child link="link_coacd_convex_piece_19" />
+  </joint>
+  <link name="link_coacd_convex_piece_20">
+    <inertial>
+      <origin xyz="-0.4383548032761605 0.5670551060339775 -0.060138493042436875" rpy="0 0 0" />
+      <inertia ixx="4.137052710377967e-05" ixy="-1.5183256528807955e-07" ixz="1.0842080839502195e-05" iyy="3.994388496063295e-05" iyz="1.5890430303430432e-08" izz="3.6882981134219676e-05" />
+    <mass value="0.09387667642452927" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_20.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_20.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_20_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_19" />
+    <child link="link_coacd_convex_piece_20" />
+  </joint>
+  <link name="link_coacd_convex_piece_21">
+    <inertial>
+      <origin xyz="-0.2549984943782637 0.56713115786181 -0.26546908193416807" rpy="0 0 0" />
+      <inertia ixx="5.73542875562617e-05" ixy="-7.720991553926762e-07" ixz="3.293388790601018e-05" iyy="0.00010390053848960542" iyz="-4.1094992285994024e-07" izz="0.0001017146157314009" />
+    <mass value="0.13469523987371623" /></inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_21.obj" scale="2 2 2" />
+      </geometry>
+      <material name="">
+        <color rgba="7.50E-01 7.50E-01 7.50E-01 0.5" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="coacd_convex_piece_21.obj" scale="1.0000E+00 1.0000E+00 1.0000E+00" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="link_coacd_convex_piece_21_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="link_coacd_convex_piece_20" />
+    <child link="link_coacd_convex_piece_21" />
+  </joint>
+<mujoco><compiler meshdir="mjcf/model_dexgraspnet/meshes/obj/core-mug-b7841572364fd9ce1249ffc39a0c3c0b/coacd/" balanceinertia="true" discardvisual="false" strippath="true" /></mujoco></robot>
