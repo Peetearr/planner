@@ -1,19 +1,10 @@
-from copy import deepcopy
-from pathlib import Path
-import xml.etree
-import gymnasium as gym
-# import gymnasium_robotics
 import time
 import mujoco
 import mujoco.viewer
 import numpy as np
-
-# from gymnasium.envs.mujoco.mujoco_env import MujocoEnv
-# from gymnasium_robotics.envs.adroit_hand import AdroitHandRelocateEnv 
-import obj2mjcf.mjcf_builder
 import transforms3d.euler as euler
 import xml.etree.ElementTree as ET
-from add_mass import update_urdf_with_mesh_properties
+ 
 import os
 import trimesh
 

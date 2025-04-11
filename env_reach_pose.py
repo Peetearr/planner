@@ -73,119 +73,123 @@ def transform_pos(pos_obj: np.array, quat_obj: np.array, pos_hand: np.array, qua
     return affines.decompose(transformed_pos)
 
 
-POSE_NUM = 10
-obj_name = "sem-Plate-9969f6178dcd67101c75d484f9069623"
-pos_path_name = "final_positions/" + obj_name + ".npy"
-mesh_path = "mjcf/model_dexgraspnet/meshes/objs/" + obj_name + "/coacd"
+def main():
+    POSE_NUM = 10
+    obj_name = "sem-Plate-9969f6178dcd67101c75d484f9069623"
+    pos_path_name = "final_positions/" + obj_name + ".npy"
+    mesh_path = "mjcf/model_dexgraspnet/meshes/objs/" + obj_name + "/coacd"
 
-core_mug = np.load(pos_path_name, allow_pickle=True)
+    core_mug = np.load(pos_path_name, allow_pickle=True)
 
-spec = mujoco.MjSpec.from_file("mjcf/model_dexgraspnet/shadow_hand_wrist_free_special_path.xml")
- 
-
-
-#body.add_joint(name="free", type=mujoco.mjtJoint.mjJNT_FREE)
-#spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
-spec.option.integrator = mujoco.mjtIntegrator.mjINT_IMPLICIT
-
-combined_mesh, mesh_names = add_meshes_from_folder(spec, mesh_path, prefix="obj_", scale=[core_mug[POSE_NUM]["scale"], core_mug[POSE_NUM]["scale"], core_mug[POSE_NUM]["scale"]])
-graspable_body = add_graspable_body(spec, combined_mesh, mesh_names, density=1000*0.14)
-# for gg in graspable_body.geoms:
-#     gg.friction
- 
-graspable_body.gravcomp = 1
-graspable_body.add_joint(name = "obj_t_joint_x", axis = [1, 0, 0], frictionloss = 5 ,damping = 0.5, type = mujoco.mjtJoint.mjJNT_SLIDE)
-graspable_body.add_joint(name = "obj_t_joint_y", axis = [0, 1, 0], frictionloss = 5, damping = 0.5, type = mujoco.mjtJoint.mjJNT_SLIDE)
-graspable_body.add_joint(name = "obj_t_joint_z", axis = [0, 0, 1], frictionloss = 2, damping = 0.5, type = mujoco.mjtJoint.mjJNT_SLIDE)
-
-graspable_body.add_joint(name = "obj_r_joint_x", axis = [1, 0, 0], damping = 0.5, type = mujoco.mjtJoint.mjJNT_HINGE)
-graspable_body.add_joint(name = "obj_r_joint_y", axis = [0, 1, 0], damping = 0.5, type = mujoco.mjtJoint.mjJNT_HINGE)
-graspable_body.add_joint(name = "obj_r_joint_z", axis = [0, 0, 1], damping = 0.5, type = mujoco.mjtJoint.mjJNT_HINGE)
-
-composite_model = spec.compile()
-composite_data = mujoco.MjData(composite_model)
+    spec = mujoco.MjSpec.from_file("./mjcf/model_dexgraspnet/shadow_hand_wrist_free_special_path.xml")
+    
 
 
-# Print all actuator names
-# print("Actuator names:")
-# for i in range(model.nu):
-#     print(f"Actuator {i}: {model.actuator(i).name}")
+    #body.add_joint(name="free", type=mujoco.mjtJoint.mjJNT_FREE)
+    #spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
+    spec.option.integrator = mujoco.mjtIntegrator.mjINT_IMPLICIT
 
-final_position = deepcopy(core_mug[POSE_NUM]["qpos"])
-# Filter final position to only include wrist coordinates
+    combined_mesh, mesh_names = add_meshes_from_folder(spec, mesh_path, prefix="obj_", scale=[core_mug[POSE_NUM]["scale"], core_mug[POSE_NUM]["scale"], core_mug[POSE_NUM]["scale"]])
+    graspable_body = add_graspable_body(spec, combined_mesh, mesh_names, density=1000*0.14)
+    for gg in graspable_body.geoms:
+        gg.friction = [0.8, 0.009, 0.0001]
+    
+    graspable_body.gravcomp = 0.5
+    graspable_body.add_joint(name = "obj_t_joint_x", axis = [1, 0, 0], frictionloss = 4 ,damping = 0.5, type = mujoco.mjtJoint.mjJNT_SLIDE)
+    graspable_body.add_joint(name = "obj_t_joint_y", axis = [0, 1, 0], frictionloss = 4, damping = 0.5, type = mujoco.mjtJoint.mjJNT_SLIDE)
+    graspable_body.add_joint(name = "obj_t_joint_z", axis = [0, 0, 1], frictionloss = 3, damping = 0.5, type = mujoco.mjtJoint.mjJNT_SLIDE)
 
-wrist_names = [
-    "WRJTx",
-    "WRJTy",
-    "WRJTz",
-    "WRJRx",
-    "WRJRy",
-    "WRJRz",]
- 
-final_position_wirst = {k: v for k, v in final_position.items() if k in wrist_names}
+    graspable_body.add_joint(name = "obj_r_joint_x", axis = [1, 0, 0], frictionloss = 0.1, damping = 0.1, type = mujoco.mjtJoint.mjJNT_HINGE)
+    graspable_body.add_joint(name = "obj_r_joint_y", axis = [0, 1, 0], frictionloss = 0.1, damping = 0.1, type = mujoco.mjtJoint.mjJNT_HINGE)
+    graspable_body.add_joint(name = "obj_r_joint_z", axis = [0, 0, 1], frictionloss = 0.1, damping = 0.1, type = mujoco.mjtJoint.mjJNT_HINGE)
 
-
-obj_quat = euler.euler2quat(np.deg2rad(45), np.deg2rad(-45), np.deg2rad(60))
-obj_pos = [0.4, 0, 0.0]
-
-wirst_pos = np.array([final_position_wirst["WRJTx"], 
-                      final_position_wirst["WRJTy"], 
-                      final_position_wirst["WRJTz"]])
-wirst_quat = euler.euler2quat(final_position_wirst["WRJRx"], 
-                      final_position_wirst["WRJRy"], 
-                      final_position_wirst["WRJRz"])
-coca = transform_pos(obj_pos, obj_quat, wirst_pos, wirst_quat)
-
-euler_ang = euler.mat2euler(coca[1])
- 
-new_pos = {"WRJRx":euler_ang[0], "WRJRy":euler_ang[1], "WRJRz":euler_ang[2],
-           "WRJTx": coca[0][0], "WRJTy": coca[0][1], "WRJTz": coca[0][2]}
-set_position(composite_data, new_pos, default_mapping)
- 
-translation_names = ['WRJTx', 'WRJTy', 'WRJTz']
-rot_names = ['WRJRz', 'WRJRy', 'WRJRx']
+    composite_model = spec.compile()
+    composite_data = mujoco.MjData(composite_model)
 
 
-for key in new_pos.keys():
-    final_position[key] = new_pos[key]
+    # Print all actuator names
+    # print("Actuator names:")
+    # for i in range(model.nu):
+    #     print(f"Actuator {i}: {model.actuator(i).name}")
 
-joint_names = [
-    'robot0:FFJ3', 'robot0:FFJ2', 'robot0:FFJ1', 'robot0:FFJ0',
-    'robot0:MFJ3', 'robot0:MFJ2', 'robot0:MFJ1', 'robot0:MFJ0',
-    'robot0:RFJ3', 'robot0:RFJ2', 'robot0:RFJ1', 'robot0:RFJ0',
-    'robot0:LFJ4', 'robot0:LFJ3', 'robot0:LFJ2', 'robot0:LFJ1', 'robot0:LFJ0',
-    'robot0:THJ4', 'robot0:THJ3', 'robot0:THJ2', 'robot0:THJ1', 'robot0:THJ0'
-]
- 
+    final_position = deepcopy(core_mug[POSE_NUM]["qpos"])
+    # Filter final position to only include wrist coordinates
 
- 
+    wrist_names = [
+        "WRJTx",
+        "WRJTy",
+        "WRJTz",
+        "WRJRx",
+        "WRJRy",
+        "WRJRz",]
+    
+    final_position_wirst = {k: v for k, v in final_position.items() if k in wrist_names}
 
 
-composite_data.qpos[0] = -0.5
-composite_data.qpos[1] = 0.5
-composite_data.qpos[2] = 0.5
- 
-composite_model.body("graspable_object").pos = obj_pos
-composite_model.body("graspable_object").quat = obj_quat
+    obj_quat = euler.euler2quat(np.deg2rad(45), np.deg2rad(-45), np.deg2rad(60))
+    obj_pos = [0.4, 0, 0.0]
 
- 
+    wirst_pos = np.array([final_position_wirst["WRJTx"], 
+                        final_position_wirst["WRJTy"], 
+                        final_position_wirst["WRJTz"]])
+    wirst_quat = euler.euler2quat(final_position_wirst["WRJRx"], 
+                        final_position_wirst["WRJRy"], 
+                        final_position_wirst["WRJRz"])
+    coca = transform_pos(obj_pos, obj_quat, wirst_pos, wirst_quat)
 
-counter = 0
-viewer = mujoco.viewer.launch_passive(composite_model, composite_data)
-while True:
-    counter+=1
-    step_start = time.time()
+    euler_ang = euler.mat2euler(coca[1])
+    
+    new_pos = {"WRJRx":euler_ang[0], "WRJRy":euler_ang[1], "WRJRz":euler_ang[2],
+            "WRJTx": coca[0][0], "WRJTy": coca[0][1], "WRJTz": coca[0][2]}
+    set_position(composite_data, new_pos, default_mapping)
+    
+    translation_names = ['WRJTx', 'WRJTy', 'WRJTz']
+    rot_names = ['WRJRz', 'WRJRy', 'WRJRx']
 
-    if counter == 800:
-        print("Change")
-        set_position(composite_data, final_position, default_mapping)
 
-    if counter == 1000:
-        print("Enabale gravity")
- 
+    for key in new_pos.keys():
+        final_position[key] = new_pos[key]
 
-    mujoco.mj_step(composite_model, composite_data)
-    viewer.sync()
-    time_until_next_step = composite_model.opt.timestep - (time.time() - step_start)
-    if time_until_next_step > 0:
-        time.sleep(time_until_next_step)
+    joint_names = [
+        'robot0:FFJ3', 'robot0:FFJ2', 'robot0:FFJ1', 'robot0:FFJ0',
+        'robot0:MFJ3', 'robot0:MFJ2', 'robot0:MFJ1', 'robot0:MFJ0',
+        'robot0:RFJ3', 'robot0:RFJ2', 'robot0:RFJ1', 'robot0:RFJ0',
+        'robot0:LFJ4', 'robot0:LFJ3', 'robot0:LFJ2', 'robot0:LFJ1', 'robot0:LFJ0',
+        'robot0:THJ4', 'robot0:THJ3', 'robot0:THJ2', 'robot0:THJ1', 'robot0:THJ0'
+    ]
+    
+
+    
+
+
+    composite_data.qpos[0] = -0.2
+    composite_data.qpos[1] = 0.2
+    composite_data.qpos[2] = 0.2
+    
+    composite_model.body("graspable_object").pos = obj_pos
+    composite_model.body("graspable_object").quat = obj_quat
+
+    
+
+    counter = 0
+    viewer = mujoco.viewer.launch_passive(composite_model, composite_data)
+    while True:
+        counter+=1
+        step_start = time.time()
+
+        if counter == 800:
+            print("Change")
+            set_position(composite_data, final_position, default_mapping)
+
+        if counter == 1000:
+            print("Enabale gravity")
+    
+
+        mujoco.mj_step(composite_model, composite_data)
+        viewer.sync()
+        time_until_next_step = composite_model.opt.timestep - (time.time() - step_start)
+        if time_until_next_step > 0:
+            time.sleep(time_until_next_step)
+
+if __name__ == "__main__":
+    main()
