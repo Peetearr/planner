@@ -1,5 +1,6 @@
 from copy import deepcopy
 import gymnasium as gym
+
 # import gymnasium_robotics
 import time
 import mujoco
@@ -10,7 +11,8 @@ import transforms3d.euler as euler
 from transforms3d import affines
 from transforms3d import quaternions
 
-Z_QUAT_0=euler.euler2quat(np.deg2rad(5), np.deg2rad(0), np.deg2rad(10))
+Z_QUAT_0 = euler.euler2quat(np.deg2rad(5), np.deg2rad(0), np.deg2rad(10))
+
 
 default_mapping = {
     "WRJTx": "WRJTx",
@@ -23,51 +25,48 @@ default_mapping = {
     "robot0:FFJ2": "robot0:A_FFJ2",
     "robot0:FFJ1": "robot0:A_FFJ1",
     "robot0:FFJ0": "robot0:A_FFJ0",
-
     "robot0:MFJ3": "robot0:A_MFJ3",
     "robot0:MFJ2": "robot0:A_MFJ2",
     "robot0:MFJ1": "robot0:A_MFJ1",
     "robot0:MFJ0": "robot0:A_MFJ0",
-    
     "robot0:RFJ3": "robot0:A_RFJ3",
     "robot0:RFJ2": "robot0:A_RFJ2",
     "robot0:RFJ1": "robot0:A_RFJ1",
     "robot0:RFJ0": "robot0:A_RFJ0",
-    
     "robot0:LFJ4": "robot0:A_LFJ4",
     "robot0:LFJ3": "robot0:A_LFJ3",
-    "robot0:LFJ2": "robot0:A_LFJ2", 
+    "robot0:LFJ2": "robot0:A_LFJ2",
     "robot0:LFJ1": "robot0:A_LFJ1",
     "robot0:LFJ0": "robot0:A_LFJ0",
-
     "robot0:THJ4": "robot0:A_THJ4",
     "robot0:THJ3": "robot0:A_THJ3",
     "robot0:THJ2": "robot0:A_THJ2",
     "robot0:THJ1": "robot0:A_THJ1",
     "robot0:THJ0": "robot0:A_THJ0",
 }
-def set_position(mj_data: mujoco.MjData, qpos : dict[str, float], maping: dict[str, str] = None):
+
+
+def set_position(mj_data: mujoco.MjData, qpos: dict[str, float], maping: dict[str, str] = None):
     if maping is None:
         for key, value in qpos.items():
             mj_data.actuator(key).ctrl = value
     else:
         for key, value in qpos.items():
             mj_data.actuator(maping[key]).ctrl = value
-        
+
 
 def transform_pos(pos_obj: np.array, quat_obj: np.array, pos_hand: np.array, quat_hand: np.array) -> np.array:
- 
+
     rotation_matrix_obj = euler.quat2mat(quat_obj)
- 
+
     homogeneous_matrix_obj = affines.compose(T=pos_obj, R=rotation_matrix_obj, Z=np.ones(3))
- 
+
     rotation_matrix_hand = euler.quat2mat(quat_hand)
     # Create a homogeneous transformation matrix
     homogeneous_matrix_hand = affines.compose(T=pos_hand, R=rotation_matrix_hand, Z=np.ones(3))
 
-
     transformed_pos = homogeneous_matrix_obj.dot(homogeneous_matrix_hand)
-    
+
     affines.decompose(transformed_pos)
 
     return affines.decompose(transformed_pos)
@@ -82,30 +81,73 @@ def main():
     core_mug = np.load(pos_path_name, allow_pickle=True)
 
     spec = mujoco.MjSpec.from_file("./mjcf/model_dexgraspnet/shadow_hand_wrist_free_special_path.xml")
-    
 
-
-    #body.add_joint(name="free", type=mujoco.mjtJoint.mjJNT_FREE)
-    #spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
+    # body.add_joint(name="free", type=mujoco.mjtJoint.mjJNT_FREE)
+    spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
     spec.option.integrator = mujoco.mjtIntegrator.mjINT_IMPLICIT
 
-    combined_mesh, mesh_names = add_meshes_from_folder(spec, mesh_path, prefix="obj_", scale=[core_mug[POSE_NUM]["scale"], core_mug[POSE_NUM]["scale"], core_mug[POSE_NUM]["scale"]])
-    graspable_body = add_graspable_body(spec, combined_mesh, mesh_names, density=1000*0.14)
+    combined_mesh, mesh_names = add_meshes_from_folder(
+        spec,
+        mesh_path,
+        prefix="obj_",
+        scale=[
+            core_mug[POSE_NUM]["scale"],
+            core_mug[POSE_NUM]["scale"],
+            core_mug[POSE_NUM]["scale"],
+        ],
+    )
+    graspable_body = add_graspable_body(spec, combined_mesh, mesh_names, density=1000 * 0.14)
     for gg in graspable_body.geoms:
         gg.friction = [0.8, 0.009, 0.0001]
-    
-    graspable_body.gravcomp = 0.5
-    graspable_body.add_joint(name = "obj_t_joint_x", axis = [1, 0, 0], frictionloss = 4 ,damping = 0.5, type = mujoco.mjtJoint.mjJNT_SLIDE)
-    graspable_body.add_joint(name = "obj_t_joint_y", axis = [0, 1, 0], frictionloss = 4, damping = 0.5, type = mujoco.mjtJoint.mjJNT_SLIDE)
-    graspable_body.add_joint(name = "obj_t_joint_z", axis = [0, 0, 1], frictionloss = 3, damping = 0.5, type = mujoco.mjtJoint.mjJNT_SLIDE)
 
-    graspable_body.add_joint(name = "obj_r_joint_x", axis = [1, 0, 0], frictionloss = 0.1, damping = 0.1, type = mujoco.mjtJoint.mjJNT_HINGE)
-    graspable_body.add_joint(name = "obj_r_joint_y", axis = [0, 1, 0], frictionloss = 0.1, damping = 0.1, type = mujoco.mjtJoint.mjJNT_HINGE)
-    graspable_body.add_joint(name = "obj_r_joint_z", axis = [0, 0, 1], frictionloss = 0.1, damping = 0.1, type = mujoco.mjtJoint.mjJNT_HINGE)
+    graspable_body.gravcomp = 0.9
+    graspable_body.add_joint(
+        name="obj_t_joint_x",
+        axis=[1, 0, 0],
+        frictionloss=4,
+        damping=0.5,
+        type=mujoco.mjtJoint.mjJNT_SLIDE,
+    )
+    graspable_body.add_joint(
+        name="obj_t_joint_y",
+        axis=[0, 1, 0],
+        frictionloss=4,
+        damping=0.5,
+        type=mujoco.mjtJoint.mjJNT_SLIDE,
+    )
+    graspable_body.add_joint(
+        name="obj_t_joint_z",
+        axis=[0, 0, 1],
+        frictionloss=3,
+        damping=0.5,
+        type=mujoco.mjtJoint.mjJNT_SLIDE,
+    )
 
+    graspable_body.add_joint(
+        name="obj_r_joint_x",
+        axis=[1, 0, 0],
+        frictionloss=0.1,
+        damping=0.1,
+        type=mujoco.mjtJoint.mjJNT_HINGE,
+    )
+    graspable_body.add_joint(
+        name="obj_r_joint_y",
+        axis=[0, 1, 0],
+        frictionloss=0.1,
+        damping=0.1,
+        type=mujoco.mjtJoint.mjJNT_HINGE,
+    )
+    graspable_body.add_joint(
+        name="obj_r_joint_z",
+        axis=[0, 0, 1],
+        frictionloss=0.1,
+        damping=0.1,
+        type=mujoco.mjtJoint.mjJNT_HINGE,
+    )
+    #spec.body("graspable_object").pos = self.obj_start_pos
+    #spec.find_body("graspable_object").pos = np.array([0, 0, 0])
     composite_model = spec.compile()
     composite_data = mujoco.MjData(composite_model)
-
 
     # Print all actuator names
     # print("Actuator names:")
@@ -121,60 +163,83 @@ def main():
         "WRJTz",
         "WRJRx",
         "WRJRy",
-        "WRJRz",]
-    
-    final_position_wirst = {k: v for k, v in final_position.items() if k in wrist_names}
+        "WRJRz",
+    ]
 
+    final_position_wirst = {k: v for k, v in final_position.items() if k in wrist_names}
 
     obj_quat = euler.euler2quat(np.deg2rad(45), np.deg2rad(-45), np.deg2rad(60))
     obj_pos = [0.4, 0, 0.0]
 
-    wirst_pos = np.array([final_position_wirst["WRJTx"], 
-                        final_position_wirst["WRJTy"], 
-                        final_position_wirst["WRJTz"]])
-    wirst_quat = euler.euler2quat(final_position_wirst["WRJRx"], 
-                        final_position_wirst["WRJRy"], 
-                        final_position_wirst["WRJRz"])
+    wirst_pos = np.array(
+        [
+            final_position_wirst["WRJTx"],
+            final_position_wirst["WRJTy"],
+            final_position_wirst["WRJTz"],
+        ]
+    )
+    wirst_quat = euler.euler2quat(
+        final_position_wirst["WRJRx"],
+        final_position_wirst["WRJRy"],
+        final_position_wirst["WRJRz"],
+    )
     coca = transform_pos(obj_pos, obj_quat, wirst_pos, wirst_quat)
 
     euler_ang = euler.mat2euler(coca[1])
-    
-    new_pos = {"WRJRx":euler_ang[0], "WRJRy":euler_ang[1], "WRJRz":euler_ang[2],
-            "WRJTx": coca[0][0], "WRJTy": coca[0][1], "WRJTz": coca[0][2]}
-    set_position(composite_data, new_pos, default_mapping)
-    
-    translation_names = ['WRJTx', 'WRJTy', 'WRJTz']
-    rot_names = ['WRJRz', 'WRJRy', 'WRJRx']
 
+    new_pos = {
+        "WRJRx": euler_ang[0],
+        "WRJRy": euler_ang[1],
+        "WRJRz": euler_ang[2],
+        "WRJTx": coca[0][0],
+        "WRJTy": coca[0][1],
+        "WRJTz": coca[0][2],
+    }
+    #set_position(composite_data, new_pos, default_mapping)
+
+    translation_names = ["WRJTx", "WRJTy", "WRJTz"]
+    rot_names = ["WRJRz", "WRJRy", "WRJRx"]
 
     for key in new_pos.keys():
         final_position[key] = new_pos[key]
 
     joint_names = [
-        'robot0:FFJ3', 'robot0:FFJ2', 'robot0:FFJ1', 'robot0:FFJ0',
-        'robot0:MFJ3', 'robot0:MFJ2', 'robot0:MFJ1', 'robot0:MFJ0',
-        'robot0:RFJ3', 'robot0:RFJ2', 'robot0:RFJ1', 'robot0:RFJ0',
-        'robot0:LFJ4', 'robot0:LFJ3', 'robot0:LFJ2', 'robot0:LFJ1', 'robot0:LFJ0',
-        'robot0:THJ4', 'robot0:THJ3', 'robot0:THJ2', 'robot0:THJ1', 'robot0:THJ0'
+        "robot0:FFJ3",
+        "robot0:FFJ2",
+        "robot0:FFJ1",
+        "robot0:FFJ0",
+        "robot0:MFJ3",
+        "robot0:MFJ2",
+        "robot0:MFJ1",
+        "robot0:MFJ0",
+        "robot0:RFJ3",
+        "robot0:RFJ2",
+        "robot0:RFJ1",
+        "robot0:RFJ0",
+        "robot0:LFJ4",
+        "robot0:LFJ3",
+        "robot0:LFJ2",
+        "robot0:LFJ1",
+        "robot0:LFJ0",
+        "robot0:THJ4",
+        "robot0:THJ3",
+        "robot0:THJ2",
+        "robot0:THJ1",
+        "robot0:THJ0",
     ]
-    
-
-    
-
 
     composite_data.qpos[0] = -0.2
     composite_data.qpos[1] = 0.2
     composite_data.qpos[2] = 0.2
-    
-    composite_model.body("graspable_object").pos = obj_pos
-    composite_model.body("graspable_object").quat = obj_quat
 
-    
-
+    # composite_model.body("graspable_object").pos = obj_pos
+    # composite_model.body("graspable_object").quat = obj_quat
+    num_actuators = composite_model.nu
+    print(f"Number of actuators: {num_actuators}")
     counter = 0
     viewer = mujoco.viewer.launch_passive(composite_model, composite_data)
     while True:
-        counter+=1
+        counter += 1
         step_start = time.time()
 
         if counter == 800:
@@ -183,13 +248,13 @@ def main():
 
         if counter == 1000:
             print("Enabale gravity")
-    
 
         mujoco.mj_step(composite_model, composite_data)
         viewer.sync()
         time_until_next_step = composite_model.opt.timestep - (time.time() - step_start)
         if time_until_next_step > 0:
             time.sleep(time_until_next_step)
+
 
 if __name__ == "__main__":
     main()
