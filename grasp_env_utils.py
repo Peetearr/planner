@@ -10,6 +10,7 @@ from load_complex_obj import add_graspable_body, add_meshes_from_folder
 import transforms3d.euler as euler
 from transforms3d import affines
 from transforms3d import quaternions
+from numpy.typing import NDArray
 
 Z_QUAT_0 = euler.euler2quat(np.deg2rad(5), np.deg2rad(0), np.deg2rad(10))
 
@@ -46,6 +47,17 @@ default_mapping = {
 }
 
 
+def get_key_bodies_pose(mj_model: mujoco.MjModel, mj_data: mujoco.MjData) -> dict[str, NDArray]:
+    body_names = get_key_bodies_names(mj_model)
+
+    body_pos_dict = {}
+    for b_name in body_names:
+        body_id = mj_data.model.body(name=b_name).id
+        body_centr_pose = mj_data.xipos[body_id]
+        body_pos_dict[b_name] = body_centr_pose
+    return body_pos_dict
+
+
 def set_position(mj_data: mujoco.MjData, qpos: dict[str, float], maping: dict[str, str] = None):
     if maping is None:
         for key, value in qpos.items():
@@ -53,6 +65,26 @@ def set_position(mj_data: mujoco.MjData, qpos: dict[str, float], maping: dict[st
     else:
         for key, value in qpos.items():
             mj_data.actuator(maping[key]).ctrl = value
+
+
+def set_position_kinematics(mj_data: mujoco.MjData, qpos: dict[str, float], maping: dict[str, str] = None):
+    if maping is None:
+        for key, value in qpos.items():
+            qpos_id = mj_data.model.joint(name=key).qposadr
+            mj_data.qpos[qpos_id] = value
+
+    else:
+        for key, value in qpos.items():
+            pass
+
+
+def get_key_bodies_names(composite_model):
+
+    bodies_names = []
+    for i in range(composite_model.nbody):
+        bodies_names.append(composite_model.body(i).name)
+    bodies_names = [name for name in bodies_names if "proximal" in name or "distal" in name]
+    return bodies_names
 
 
 def transform_pos(pos_obj: np.array, quat_obj: np.array, pos_hand: np.array, quat_hand: np.array) -> np.array:
@@ -144,8 +176,8 @@ def main():
         damping=0.1,
         type=mujoco.mjtJoint.mjJNT_HINGE,
     )
-    #spec.body("graspable_object").pos = self.obj_start_pos
-    #spec.find_body("graspable_object").pos = np.array([0, 0, 0])
+    # spec.body("graspable_object").pos = self.obj_start_pos
+    # spec.find_body("graspable_object").pos = np.array([0, 0, 0])
     composite_model = spec.compile()
     composite_data = mujoco.MjData(composite_model)
 
@@ -195,7 +227,7 @@ def main():
         "WRJTy": coca[0][1],
         "WRJTz": coca[0][2],
     }
-    #set_position(composite_data, new_pos, default_mapping)
+    # set_position(composite_data, new_pos, default_mapping)
 
     translation_names = ["WRJTx", "WRJTy", "WRJTz"]
     rot_names = ["WRJRz", "WRJRy", "WRJRx"]
@@ -232,11 +264,24 @@ def main():
     composite_data.qpos[1] = 0.2
     composite_data.qpos[2] = 0.2
 
-    # composite_model.body("graspable_object").pos = obj_pos
-    # composite_model.body("graspable_object").quat = obj_quat
+    composite_model.body("graspable_object").pos = obj_pos
+    composite_model.body("graspable_object").quat = obj_quat
     num_actuators = composite_model.nu
     print(f"Number of actuators: {num_actuators}")
     counter = 0
+
+    set_position_kinematics(composite_data, final_position)
+    mujoco.mj_kinematics(composite_model, composite_data)
+
+    body_names = get_key_bodies_pose(composite_model, composite_data)
+
+    body_id = composite_data.model.body(name="robot0:palm").id
+    position_palm = composite_data.xipos[body_id]
+    # Get the center of mass (CoM) position and orientation of the body
+    print(f"Palm position: {position_palm}")
+
+    print(body_names)
+
     viewer = mujoco.viewer.launch_passive(composite_model, composite_data)
     while True:
         counter += 1
@@ -249,7 +294,7 @@ def main():
         if counter == 1000:
             print("Enabale gravity")
 
-        mujoco.mj_step(composite_model, composite_data)
+        # mujoco.mj_step(composite_model, composite_data)
         viewer.sync()
         time_until_next_step = composite_model.opt.timestep - (time.time() - step_start)
         if time_until_next_step > 0:

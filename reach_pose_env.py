@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Dict, Optional, Tuple
 import mujoco
 import numpy as np
 import gymnasium as gym
@@ -6,8 +6,9 @@ from gymnasium.envs.mujoco.mujoco_env import MujocoEnv
 import transforms3d.euler as euler
 from transforms3d import affines
 from transforms3d import quaternions
-from env_reach_pose import default_mapping
+from grasp_env_utils import default_mapping
 from load_complex_obj import add_graspable_body, add_meshes_from_folder
+from numpy.typing import NDArray
 
 
 def set_position(mj_data: mujoco.MjData, qpos: dict[str, float], maping: dict[str, str] = None):
@@ -17,6 +18,7 @@ def set_position(mj_data: mujoco.MjData, qpos: dict[str, float], maping: dict[st
     else:
         for key, value in qpos.items():
             mj_data.actuator(maping[key]).ctrl = value
+
 
 def convert_pose_dexgraspnet_to_mujoco(qpos: dict[str, float], maping: dict[str, str] = None):
     new_qpos = {}
@@ -30,7 +32,12 @@ def convert_pose_dexgraspnet_to_mujoco(qpos: dict[str, float], maping: dict[str,
     return new_qpos
 
 
-def transform_pos(pos_obj: np.ndarray, quat_obj: np.ndarray, pos_hand: np.ndarray, quat_hand: np.ndarray):
+def transform_pos(
+    pos_obj: np.ndarray,
+    quat_obj: np.ndarray,
+    pos_hand: np.ndarray,
+    quat_hand: np.ndarray,
+):
 
     rotation_matrix_obj = euler.quat2mat(quat_obj)
 
@@ -55,7 +62,8 @@ class ReachPoseEnv(MujocoEnv):
         obj_start_quat: np.ndarray,
         obj_scale=1,
         frame_skip=5,
-         **kwargs,
+        hand_starting_pose: Optional[dict[str, float]] = None,
+        **kwargs,
     ):
         self.obj_scale = obj_scale
         self.obj_start_pos = obj_start_pos
@@ -71,7 +79,7 @@ class ReachPoseEnv(MujocoEnv):
             model_path=model_path_hand,
             frame_skip=frame_skip,
             observation_space=observation_space,
-            **kwargs
+            **kwargs,
         )
 
         self.reset()
@@ -89,47 +97,50 @@ class ReachPoseEnv(MujocoEnv):
         """
         Reset the state of the environment to an initial state.
         """
-        
+
         self.data.qpos[:] = self.init_qpos
         self.data.qvel[:] = self.init_qvel
         self.set_state(self.init_qpos, self.init_qvel)
- 
+
         return np.array(self.init_qpos, dtype=np.float32)
-    
+
     def init_action_space(self, mj_path):
         """
         Determine the action space based on the mujoco model
         """
-        spec = mujoco.MjSpec.from_file(mj_path)
-        return gym.spaces.Box(low=-4.0, high=4.0, shape=(len(spec.actuators),), dtype=np.float32)
+        self.model = mujoco.MjModel.from_xml_path(mj_path)
+        bounds = super()._set_action_space()
+        return bounds
 
     def _initialize_simulation(self):
         # sdfs = sorted()
-        spec = mujoco.MjSpec.from_file(self.fullpath)
+        spec_mujoco = mujoco.MjSpec.from_file(self.fullpath)
+        self.spec_mujoco = spec_mujoco
 
         for key, value in self.hand_final_full_pose.items():
             try:
-                res = spec.find_actuator(key)
+                res = spec_mujoco.find_actuator(key)
                 if res is None:
                     raise Exception("Actuator not found")
             except Exception as e:
                 print(f"Actuator {key} not found")
                 raise Exception("The final position and hand do not match")
 
-        self.simultion_settings(spec)
-        self.add_graspable_object_spec(spec)
+        self.simultion_settings(spec_mujoco)
+        self.add_graspable_object_spec(spec_mujoco)
 
-        composite_model = spec.compile()
+        composite_model = spec_mujoco.compile()
         composite_data = mujoco.MjData(composite_model)
-        
+
         composite_model.vis.global_.offwidth = self.width
         composite_model.vis.global_.offheight = self.height
 
         return composite_model, composite_data
 
-    def simultion_settings(self, spec):
-        spec.option.integrator = mujoco.mjtIntegrator.mjINT_IMPLICIT
-        spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
+    def simultion_settings(self, spec: mujoco.MjSpec):
+        spec.option.integrator = mujoco.mjtIntegrator.mjINT_IMPLICIT  # type: ignore
+        # spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
+        spec.option.timestep = 0.001
 
     def add_graspable_object_spec(self, spec):
         combined_mesh, mesh_names = add_meshes_from_folder(
@@ -176,17 +187,19 @@ class ReachPoseEnv(MujocoEnv):
             name="obj_r_joint_z", axis=[0, 0, 1], frictionloss=0.1, damping=0.1,
             type=mujoco.mjtJoint.mjJNT_HINGE,
         )
-
-    def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, dict]:
+        
+    def step(self, action: NDArray[np.float32]) -> Tuple[NDArray[np.float64], np.float64, bool, bool, Dict[str, np.float64]]:
         maped_action = self.map_action_to_model(action)
         self.do_simulation(maped_action, self.frame_skip)
         obs = self._get_obs()
         if self.render_mode == "human":
             self.render()
-        
-        return obs, 0.0, False, {}
+        reward = 0.0 
+
+        return obs, reward, False, False, {}
     
     def map_action_to_model(self, action: np.ndarray) -> np.ndarray:
+        # Overide the action space to match the mujoco model
         return action
     
     def reward(self, state, action) -> float:
@@ -229,15 +242,20 @@ core_mug = np.load(pos_path_name, allow_pickle=True)
 qpos_hand = core_mug[POSE_NUM]["qpos"]
 qpos_shadow = convert_pose_dexgraspnet_to_mujoco(qpos_hand, default_mapping)
 
+
 reacher = ReachPoseEnv(
     hand_final_full_pose=qpos_shadow,
     model_path_hand="./mjcf/model_dexgraspnet/shadow_hand_wrist_free_special_path.xml",
     obj_mesh_path="mjcf/model_dexgraspnet/meshes/objs/sem-Plate-9969f6178dcd67101c75d484f9069623/coacd",
-    obj_start_pos = np.array([0, 0, 0]),
-    obj_start_quat =  np.array([0, 0, 0, 1]),
+    obj_start_pos=np.array([0.2, 0, 0]),
+    obj_start_quat=np.array([0, 0, 0, 1]),
     obj_scale=core_mug[POSE_NUM]["scale"],
     render_mode="human",
-
 )
 for _ in range(5000):
-    reacher.step(np.zeros(reacher.action_space.shape[0]))
+    bingo_bongo = reacher.action_space.sample()
+    # bingo_bongo[0:6] = [0, 0, 0, 0, 0, 0]
+    for _ in range(100):
+        reacher.step(bingo_bongo)
+
+    reacher.reset()

@@ -118,12 +118,12 @@
                         <inertial pos="0.006 0 0.036" quat="0.715833 0.0439898 0.0749825 0.692839" mass="0.3" diaginertia="0.001 0.001 0.001" />
                         <geom name="robot0:C_palm0" class="robot0:DC_Hand" size="0.032 0.0111 0.049" pos="0.011 0 0.038" type="box" rgba="0.4 0.5 0.6 0.5" />
                         <geom name="robot0:C_palm1" class="robot0:DC_Hand" size="0.011 0.0111 0.025" pos="-0.032 0 0.014" type="box" rgba="0.4 0.5 0.6 0.5" />
-                        <joint name="ARRt_x" class="wrist_t_x"/>
-                        <joint name="ARRt_y" class="wrist_t_y"/>
-                        <joint name="ARRt_z" class="wrist_t_z" />
-                        <joint name="ARRz" class="wrist_r_z"/>
-                        <joint name="ARRy"  class="wrist_r_y"/>
-                        <joint name="ARRx" class="wrist_r_x" />
+                        <joint name="WRJTx" class="wrist_t_x"/>
+                        <joint name="WRJTy" class="wrist_t_y"/>
+                        <joint name="WRJTz" class="wrist_t_z" />
+                        <joint name="WRJRz" class="wrist_r_z"/>
+                        <joint name="WRJRy"  class="wrist_r_y"/>
+                        <joint name="WRJRx" class="wrist_r_x" />
                         
                         <body name="robot0:ffknuckle" pos="0.033 0 0.095" gravcomp="1">
                             <inertial pos="0 0 0" quat="0.520062 0.854102 0.00600072 -0.00300036" mass="0.008" diaginertia="1e-05 1e-05 1e-05" />
@@ -275,12 +275,12 @@
         </fixed>
     </tendon> -->
     <actuator>
-        <position name="WRJRx" joint="ARRx" class="wrist_r_x" />
-        <position name="WRJRy" joint="ARRy" class="wrist_r_y" />
-        <position name="WRJRz" joint="ARRz" class="wrist_r_z" />
-        <position name="WRJTx" joint="ARRt_x" class="wrist_t_x" />
-        <position name="WRJTy" joint="ARRt_y" class="wrist_t_y" />
-        <position name="WRJTz" joint="ARRt_z" class="wrist_t_z" />
+        <position name="WRJRx" joint="WRJRx" class="wrist_r_x" />
+        <position name="WRJRy" joint="WRJRy" class="wrist_r_y" />
+        <position name="WRJRz" joint="WRJRz" class="wrist_r_z" />
+        <position name="WRJTx" joint="WRJTx" class="wrist_t_x" />
+        <position name="WRJTy" joint="WRJTy" class="wrist_t_y" />
+        <position name="WRJTz" joint="WRJTz" class="wrist_t_z" />
         <position name="robot0:A_FFJ3" class="robot0:asset_class" joint="robot0:FFJ3" ctrlrange="-0.349 0.349" forcerange="-0.9 0.9"  user="2004 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" />
         <position name="robot0:A_FFJ2" class="robot0:asset_class" joint="robot0:FFJ2" ctrlrange="0 1.571" forcerange="-0.9 0.9"   user="2002 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" />
         <position name="robot0:A_FFJ1" class="robot0:asset_class" joint="robot0:FFJ1" ctrlrange="0 1.571" forcerange="-0.7245 0.7245"   user="2000 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" />
@@ -328,7 +328,7 @@
         <jointpos joint="robot0:THJ1" name="robot0:Sjp_THJ1" />
         <jointpos joint="robot0:THJ0" name="robot0:Sjp_THJ0" /> -->
         <actuatorfrc name="force_z" actuator="WRJTz" />
-        <jointactuatorfrc name="force_zjs" joint="ARRt_z" />
+        <jointactuatorfrc name="force_zjs" joint="WRJTz" />
         <touch site="robot0:Tch_fftip" name="robot0:ST_Tch_fftip" />
         <touch site="robot0:Tch_mftip" name="robot0:ST_Tch_mftip" />
         <touch site="robot0:Tch_rftip" name="robot0:ST_Tch_rftip" />
