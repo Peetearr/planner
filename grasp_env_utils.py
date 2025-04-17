@@ -48,7 +48,7 @@ default_mapping = {
 
 
 def get_key_bodies_pose(mj_model: mujoco.MjModel, mj_data: mujoco.MjData) -> dict[str, NDArray]:
-    body_names = get_key_bodies_names(mj_model)
+    body_names = get_key_bodies_shadow_names(mj_model)
 
     body_pos_dict = {}
     for b_name in body_names:
@@ -74,20 +74,19 @@ def set_position_kinematics(mj_data: mujoco.MjData, qpos: dict[str, float], mapi
             mj_data.qpos[qpos_id] = value
 
     else:
-        for key, value in qpos.items():
-            pass
+        raise NotImplementedError("Mapping is not implemented for kinematics")
 
 
-def get_key_bodies_names(composite_model):
+def get_key_bodies_shadow_names(composite_model):
 
     bodies_names = []
     for i in range(composite_model.nbody):
         bodies_names.append(composite_model.body(i).name)
-    bodies_names = [name for name in bodies_names if "proximal" in name or "distal" in name]
+    bodies_names = [name for name in bodies_names if  "distal" in name or "palm" in name or "middle" in name]
     return bodies_names
 
 
-def transform_pos(pos_obj: np.array, quat_obj: np.array, pos_hand: np.array, quat_hand: np.array) -> np.array:
+def transform_wirst_pos_to_obj(pos_obj: NDArray, quat_obj: NDArray, pos_hand: NDArray, quat_hand: NDArray) -> tuple[NDArray, NDArray]:
 
     rotation_matrix_obj = euler.quat2mat(quat_obj)
 
@@ -98,11 +97,28 @@ def transform_pos(pos_obj: np.array, quat_obj: np.array, pos_hand: np.array, qua
     homogeneous_matrix_hand = affines.compose(T=pos_hand, R=rotation_matrix_hand, Z=np.ones(3))
 
     transformed_pos = homogeneous_matrix_obj.dot(homogeneous_matrix_hand)
+    T, R, _, _ = affines.decompose(transformed_pos)
+    return T, R
 
-    affines.decompose(transformed_pos)
 
-    return affines.decompose(transformed_pos)
 
+def add_body_key_points(spec_mujoco, key_pose_dict):
+    for pose_name, pose in key_pose_dict.items():
+        spec_mujoco.worldbody.add_geom(name=pose_name + "ball",
+        type=mujoco.mjtGeom.mjGEOM_SPHERE,
+        rgba=[1, 1, 0, 0.25], size=[0.005, 0.005, 0.1], pos=pose)
+
+
+def get_final_bodies_pose(final_position: dict[str, float], hand_model_path: str):
+ 
+    model_for_pose = mujoco.MjModel.from_xml_path(hand_model_path)
+    data_for_pose = mujoco.MjData(model_for_pose)
+
+    set_position_kinematics(data_for_pose, final_position)
+    mujoco.mj_kinematics(model_for_pose, data_for_pose)
+
+    key_bodies_pose = get_key_bodies_pose(model_for_pose, data_for_pose)
+    return key_bodies_pose
 
 def main():
     POSE_NUM = 10
@@ -215,7 +231,8 @@ def main():
         final_position_wirst["WRJRy"],
         final_position_wirst["WRJRz"],
     )
-    coca = transform_pos(obj_pos, obj_quat, wirst_pos, wirst_quat)
+
+    coca = transform_wirst_pos_to_obj(obj_pos, obj_quat, wirst_pos, wirst_quat)
 
     euler_ang = euler.mat2euler(coca[1])
 
@@ -269,19 +286,13 @@ def main():
     num_actuators = composite_model.nu
     print(f"Number of actuators: {num_actuators}")
     counter = 0
-
+    model_for_pose_path = "./mjcf/model_dexgraspnet/shadow_hand_wrist_free_special_path.xml"
+    
+   
+    
+    fin_pose = get_final_bodies_pose(final_position, model_for_pose_path)
     set_position_kinematics(composite_data, final_position)
-    mujoco.mj_kinematics(composite_model, composite_data)
-
-    body_names = get_key_bodies_pose(composite_model, composite_data)
-
-    body_id = composite_data.model.body(name="robot0:palm").id
-    position_palm = composite_data.xipos[body_id]
-    # Get the center of mass (CoM) position and orientation of the body
-    print(f"Palm position: {position_palm}")
-
-    print(body_names)
-
+    
     viewer = mujoco.viewer.launch_passive(composite_model, composite_data)
     while True:
         counter += 1
@@ -299,6 +310,7 @@ def main():
         time_until_next_step = composite_model.opt.timestep - (time.time() - step_start)
         if time_until_next_step > 0:
             time.sleep(time_until_next_step)
+
 
 
 if __name__ == "__main__":

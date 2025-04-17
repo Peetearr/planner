@@ -15,7 +15,7 @@
             <site size="0.009 0.004 0.013" group="4" type="box" rgba="0.8 0.8 0.8 0.15" />
         </default>
         <default class="robot0:DC_Hand">
-            <geom conaffinity="0" group="1" material="robot0:MatColl" />
+            <geom conaffinity="0" group="1" material="robot0:MatColl" rgba="0.8 0.8 0.8 0.1"/>
         </default>
         <default class="robot0:free">
             <joint type="free" />
@@ -97,8 +97,8 @@
         <texture type="2d" name="robot0:texplane" builtin="checker" rgb1="0.2 0.3 0.4" rgb2="0.1 0.15 0.2" width="512" height="512" />
         <texture type="cube" name="robot0:texgeom" builtin="flat" mark="cross" rgb1="0.3 0.6 0.5" rgb2="0.3 0.6 0.5" width="127" height="762" />
         <material name="robot0:MatGnd" texture="robot0:texplane" texuniform="true" reflectance="0.5" />
-        <material name="robot0:MatColl" specular="1" shininess="0.3" reflectance="0.5" rgba="0.4 0.5 0.6 1" />
-        <material name="robot0:MatViz" specular="0.75" shininess="0.1" reflectance="0.5" rgba="0.93 0.93 0.93 1" />
+        <material name="robot0:MatColl" specular="1" shininess="0.3" reflectance="0.5" rgba="0.4 0.5 0.6 0.5" />
+        <material name="robot0:MatViz" specular="0.75" shininess="0.1" reflectance="0.5" rgba="0.93 0.93 0.93 0.5" />
         <material name="robot0:object" texture="robot0:texgeom" />
         <material name="floor_mat" specular="0" rgba="0.2 0.2 0.2 0" />
         <mesh name="robot0:forearm" file="forearm_electric.obj" />
