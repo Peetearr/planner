@@ -82,7 +82,7 @@ def get_key_bodies_shadow_names(composite_model):
     bodies_names = []
     for i in range(composite_model.nbody):
         bodies_names.append(composite_model.body(i).name)
-    bodies_names = [name for name in bodies_names if  "distal" in name or "palm" in name or "middle" in name]
+    bodies_names = [name for name in bodies_names if  "distal" in name or "palm" in name ]
     return bodies_names
 
 

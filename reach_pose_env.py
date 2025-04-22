@@ -1,5 +1,7 @@
 from copy import deepcopy
+import os
 import random
+import time
 from typing import Dict, Optional, Tuple
 import mujoco
 import numpy as np
@@ -159,7 +161,7 @@ class ReachPoseEnv(MujocoEnv):
 
     def simultion_settings(self, spec: mujoco.MjSpec):
         spec.option.integrator = mujoco.mjtIntegrator.mjINT_IMPLICIT  # type: ignore
-        spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
+        #spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
         spec.option.timestep = 0.0025
 
     def add_graspable_object_spec(self, spec):
@@ -180,31 +182,34 @@ class ReachPoseEnv(MujocoEnv):
 
         for gg in graspable_body.geoms:
             gg.friction = [0.8, 0.009, 0.0001]
+        
+        friction_loss = 0.001
+        damping = 0.0001
 
-        graspable_body.gravcomp = 1
+        graspable_body.gravcomp = 0.8
         graspable_body.add_joint(
-            name="obj_t_joint_x", axis=[1, 0, 0], frictionloss=4, damping=0.5,
+            name="obj_t_joint_x", axis=[1, 0, 0], frictionloss=friction_loss, damping=damping,
             type=mujoco.mjtJoint.mjJNT_SLIDE,
         )
         graspable_body.add_joint(
-            name="obj_t_joint_y", axis=[0, 1, 0], frictionloss=4, damping=0.5,
+            name="obj_t_joint_y", axis=[0, 1, 0], frictionloss=friction_loss, damping=damping,
             type=mujoco.mjtJoint.mjJNT_SLIDE,
         )
         graspable_body.add_joint(
-            name="obj_t_joint_z", axis=[0, 0, 1], frictionloss=3, damping=0.5,
+            name="obj_t_joint_z", axis=[0, 0, 1], frictionloss=friction_loss, damping=damping,
             type=mujoco.mjtJoint.mjJNT_SLIDE,
         )
 
         graspable_body.add_joint(
-            name="obj_r_joint_x", axis=[1, 0, 0], frictionloss=0.1, damping=0.1,
+            name="obj_r_joint_x", axis=[1, 0, 0], frictionloss=friction_loss/10, damping=damping,
             type=mujoco.mjtJoint.mjJNT_HINGE,
         )
         graspable_body.add_joint(
-            name="obj_r_joint_y", axis=[0, 1, 0], frictionloss=0.1, damping=0.1,
+            name="obj_r_joint_y", axis=[0, 1, 0], frictionloss=friction_loss/10, damping=damping,
             type=mujoco.mjtJoint.mjJNT_HINGE,
         )
         graspable_body.add_joint(
-            name="obj_r_joint_z", axis=[0, 0, 1], frictionloss=0.1, damping=0.1,
+            name="obj_r_joint_z", axis=[0, 0, 1], frictionloss=friction_loss/10, damping=damping,
             type=mujoco.mjtJoint.mjJNT_HINGE,
         )
 
@@ -228,6 +233,7 @@ class ReachPoseEnv(MujocoEnv):
 
         if self.render_mode == "human":
             self.render()
+
 
         
         reward = np.float32(0.0) 
@@ -302,9 +308,10 @@ class ReachPoseEnv(MujocoEnv):
     def reward(self, key_points_distance : NDArray[np.float32], obj_displacmnet: np.float32, diff_orient: np.float32) -> np.float32:
         weight_keypoints_error = 0.5
         mean_error_dist = np.sum(key_points_distance)
-        #print(diff_orient)
-        weight_obj_error = 1
+        
+        weight_obj_error = 10
         weight_wirst_orient = 1
+        #print(f"obj_displacmnet  {obj_displacmnet*weight_obj_error}" )
         reward = -mean_error_dist*weight_keypoints_error - obj_displacmnet*weight_obj_error - diff_orient*weight_wirst_orient
         return reward
     
@@ -421,14 +428,15 @@ def debug_env():
 
 def run_mpc():
     POSE_NUM = 3
-    obj_name = "sem-Plate-9969f6178dcd67101c75d484f9069623"
+    obj_name = "core-bowl-a593e8863200fdb0664b3b9b23ddfcbc"
     pos_path_name = "final_positions/" + obj_name + ".npy"
     mesh_path = "mjcf/model_dexgraspnet/meshes/objs/" + obj_name + "/coacd"
     model_path_hand = "./mjcf/model_dexgraspnet/shadow_hand_wrist_free_special_path.xml"
 
 
-    obj_start_pos = np.array([0.0, 0.0, 0])
-    obj_start_quat = euler.euler2quat(np.deg2rad(0), np.deg2rad(0), np.deg2rad(0))
+    obj_start_pos = np.array([0.0, -0.2, 0])
+    #obj_start_pos = np.array([0.0, -0.1, 0])
+    obj_start_quat = euler.euler2quat(np.deg2rad(30), np.deg2rad(45), np.deg2rad(0))
 
     core_mug = np.load(pos_path_name, allow_pickle=True)
     qpos_hand = core_mug[POSE_NUM]["qpos"]
@@ -486,7 +494,6 @@ def run_mpc():
 
     # create controller with chosen parameters
     def dynamics_mpc_wrapper(state_vec: Tensor, action_vec: Tensor):
-
         return reacher_dynamic.parralel_step_mpc(state_vec, action_vec)
 
 
@@ -510,23 +517,57 @@ def run_mpc():
         nu=nu,
         warmup_iters=50,
         online_iters=50,
-        num_samples=500,
+        num_samples=300,
         num_elites=50,
-        horizon=5,
+        elites_keep_fraction=0.36,
+        horizon=8,
         device="cpu",
         alpha=0.3,
-        noise_beta=10
+        noise_beta=-3
     )
 
-    # assuming you have a gym-like env
+    if not os.path.exists(obj_name + str(POSE_NUM) + ".npz"):
+        # assuming you have a gym-like env
+        MPC_STEPS = 15
+        action_seq = []
+        costs_seq = []
+        obs_mpc_state = reacher.reset_mpc()
+        for i in range(MPC_STEPS):
+            action_i = ctrl.command(obs_mpc_state)
+            action_np = action_i.cpu().numpy()
+            obs_mpc_state = reacher.step_mpc(obs_mpc_state, action_np)
+            #reacher.step(action.cpu().numpy())
+            cost = reacher.cost_mpc(obs_mpc_state, 0)
+            costs_seq.append(cost)
+            action_seq.append(action_np)
+            print(f"Cost : {cost}")
+            print(f"Action : {action_np}")
+        reacher.close()
+        print("Finish traj generate")
+        np.savez(obj_name + str(POSE_NUM), action_seq)
+    else:
+        print("File traj already exists")
+        action_seq = np.load(obj_name + str(POSE_NUM) + ".npz")["arr_0"]
     obs_mpc_state = reacher.reset_mpc()
-    for i in range(1000):
-        action = ctrl.command(obs_mpc_state)
-        obs_mpc_state = reacher.step_mpc(obs_mpc_state, action.cpu().numpy())
-        #reacher.step(action.cpu().numpy())
-        cost = reacher.cost_mpc(obs_mpc_state, 0)
-        print(f"Cost : {cost}")
 
 
+    
+    
+    viewer = mujoco.viewer.launch_passive(reacher.model, reacher.data)
+    while True:
+        for action_i in action_seq:
+            reacher.data.ctrl = action_i
+            for i in range(reacher.frame_skip):
+                mujoco.mj_step(reacher.model, reacher.data)
+                for i in range(50):
+                    time.sleep(0.01)
+                    viewer.sync()
+        for i in range(500):
+            time.sleep(0.01)
+            viewer.sync()
+            mujoco.mj_step(reacher.model, reacher.data)
+
+            
+        reacher.reset_mpc()
 if __name__ == "__main__":
     run_mpc()
