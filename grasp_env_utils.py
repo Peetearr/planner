@@ -46,6 +46,75 @@ default_mapping = {
     "robot0:THJ0": "robot0:A_THJ0",
 }
 
+def quintic_func(q0, qf, T, qd0=0, qdf=0):
+    "Cite code from https://github.com/petercorke/robotics-toolbox-python"
+
+    """
+    Quintic scalar polynomial as a function
+
+    :param q0: initial value
+    :type q0: float
+    :param qf: final value
+    :type qf: float
+    :param T: trajectory time
+    :type T: float
+    :param qd0: initial velocity, defaults to 0
+    :type q0: float, optional
+    :param qdf: final velocity, defaults to 0
+    :type q0: float, optional
+    :return: polynomial function :math:`f: t \mapsto (q(t), \dot{q}(t), \ddot{q}(t))`
+    :rtype: callable
+
+    Returns a function which computes the specific quintic polynomial, and its
+    derivatives, as described by the parameters.
+
+    Example:
+
+    .. runblock:: pycon
+
+        >>> from roboticstoolbox import quintic_func
+        >>> f = quintic_func(1, 2, 5)
+        >>> f(0)
+        >>> f(5)
+        >>> f(2.5)
+
+    :seealso: :func:`quintic` :func:`trapezoidal_func`
+    """
+
+    # solve for the polynomial coefficients using least squares
+    # fmt: off
+    X = [
+        [ 0.0,          0.0,         0.0,        0.0,     0.0,  1.0],
+        [ T**5,         T**4,        T**3,       T**2,    T,    1.0],
+        [ 0.0,          0.0,         0.0,        0.0,     1.0,  0.0],
+        [ 5.0 * T**4,   4.0 * T**3,  3.0 * T**2, 2.0 * T, 1.0,  0.0],
+        [ 0.0,          0.0,         0.0,        2.0,     0.0,  0.0],
+        [20.0 * T**3,  12.0 * T**2,  6.0 * T,    2.0,     0.0,  0.0],
+    ]
+    # fmt: on
+    coeffs, resid, rank, s = np.linalg.lstsq(
+        X, np.r_[q0, qf, qd0, qdf, 0, 0], rcond=None
+    )
+
+    # coefficients of derivatives
+    coeffs_d = coeffs[0:5] * np.arange(5, 0, -1)
+    coeffs_dd = coeffs_d[0:4] * np.arange(4, 0, -1)
+
+    return lambda x: (
+        np.polyval(coeffs, x),
+        np.polyval(coeffs_d, x),
+        np.polyval(coeffs_dd, x),
+    )
+
+
+# -------------------------------------------------------------------------- #
+
+
+def create_quintic_traj_function(q0: NDArray, qf: NDArray, t: float):
+    def traj_function(time: float) -> NDArray:
+        return np.array([quintic_func(q0[i], qf[i], t)(time) for i in range(len(q0))])
+    return traj_function
+
 
 def get_key_bodies_pose(mj_model: mujoco.MjModel, mj_data: mujoco.MjData) -> dict[str, NDArray]:
     body_names = get_key_bodies_shadow_names(mj_model)

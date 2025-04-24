@@ -11,9 +11,11 @@ import transforms3d.euler as euler
 from transforms3d import affines
 from transforms3d import quaternions
 from grasp_env_utils import (
+    create_quintic_traj_function,
     default_mapping,
     get_final_bodies_pose,
     get_key_bodies_pose,
+    quintic_func,
     set_position_kinematics,
     transform_wirst_pos_to_obj,
 )
@@ -113,6 +115,19 @@ def run_mpc():
     noise_sigma = torch.diag(wide_action*0.25).double()
     nu = reacher.action_space.shape[0]
 
+    q0 = np.array([0, 0, 0])
+    qf = np.array([1, 2, 3])
+    t =  1.0
+
+    
+    q_action = reacher.data.ctrl
+    q_final = np.zeros(nu)
+
+    for key, value in final_act_pose_sh_hand.items(): 
+        q_final[reacher.data.actuator(name=key).id] = value
+    
+    traj_fun = create_quintic_traj_function(q_action, q_final, t)
+    
     ctrl = MPPI(dynamics=dynamics_mpc_wrapper, 
             running_cost=runnng_cost, 
             nx = 68,

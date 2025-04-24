@@ -446,9 +446,9 @@ def run_mpc():
     model_path_hand = "./mjcf/model_dexgraspnet/shadow_hand_wrist_free_special_path.xml"
 
 
-    obj_start_pos = np.array([0.0, -0.2, 0])
+    obj_start_pos = np.array([0.0, 0.3, 0.1])
     #obj_start_pos = np.array([0.0, -0.1, 0])
-    obj_start_quat = euler.euler2quat(np.deg2rad(0), np.deg2rad(0), np.deg2rad(0))
+    obj_start_quat = euler.euler2quat(np.deg2rad(0), np.deg2rad(0), np.deg2rad(90))
 
     core_mug = np.load(pos_path_name, allow_pickle=True)
     qpos_hand = core_mug[POSE_NUM]["qpos"]
@@ -495,7 +495,7 @@ def run_mpc():
         obj_start_pos=obj_start_pos,
         obj_start_quat=obj_start_quat,
         obj_scale=core_mug[POSE_NUM]["scale"]*0.9,
-        frame_skip = 3
+        frame_skip = 4
     )
 
     reacher = ReachPoseEnv(config, key_pose_dict=key_body_final_pos, render_mode="human")
@@ -520,7 +520,7 @@ def run_mpc():
             costs_tensor = Tensor(costs)
         return costs_tensor
 
-    sigma = Tensor(reacher.action_space.high)
+    sigma = Tensor(reacher.action_space.high) / 2
     ctrl = iCEM(
         dynamics=dynamics_mpc_wrapper,
         trajectory_cost=cost_vec,
@@ -531,16 +531,16 @@ def run_mpc():
         online_iters=300,
         num_samples=100,
         num_elites=500,
-        elites_keep_fraction=0.36,
-        horizon=4,
+        elites_keep_fraction=0.4,
+        horizon=6,
         device="cpu",
-        alpha=0.05,
+        alpha=0.1,
         noise_beta=-3
     )
 
     if not os.path.exists(obj_name + str(POSE_NUM) + ".npz"):
-        # assuming you have a gym-like env
-        MPC_STEPS = 30
+        # assuming you have5 a gym-like env
+        MPC_STEPS = 50
         action_seq = []
         costs_seq = []
         obs_mpc_state = reacher.reset_mpc()
@@ -553,7 +553,8 @@ def run_mpc():
             costs_seq.append(cost)
             action_seq.append(action_np)
             print(f"Cost : {cost}")
-            print(f"Action : {action_np}")
+            #print(f"Action : {action_np}")
+            print(f"Step : {i}")
         reacher.close()
         print("Finish traj generate")
         np.savez(obj_name + str(POSE_NUM), action_seq)
