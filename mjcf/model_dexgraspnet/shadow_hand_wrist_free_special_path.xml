@@ -15,7 +15,7 @@
             <site size="0.009 0.004 0.013" group="4" type="box" rgba="0.8 0.8 0.8 0.15" />
         </default>
         <default class="robot0:DC_Hand">
-            <geom group="1" material="robot0:MatColl" condim = "3" rgba="0.4 0.5 0.6 0.5"/>
+            <geom group="1" material="robot0:MatColl" condim = "3" rgba="0.4 0.5 0.6 0.5" solimp="0.5 0.99 0.0001" solref="0.005 1"/>
         </default>
         <default class="robot0:free">
             <joint type="free" />
