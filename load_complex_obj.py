@@ -54,7 +54,8 @@ def add_graspable_body(mj_spec: mujoco.MjSpec, combined_mesh: trimesh.Trimesh, m
         type=mujoco.mjtGeom.mjGEOM_MESH,
         rgba=[1, 0, 0, 0.25],
         meshname=name,
-        condim = 3)
+        condim = 3, 
+        margin=0.001,)
     return body
  
              

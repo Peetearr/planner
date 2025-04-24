@@ -102,6 +102,8 @@ class ReachPoseEnv(MujocoEnv):
                 rgba=[1, 1, 0.1, 0.5],
                 size=[0.003, 0.003, 0.003],
                 pos=pose,
+                contype = 0,
+                conaffinity = 0,
             )
 
     def reset(
@@ -183,10 +185,10 @@ class ReachPoseEnv(MujocoEnv):
         for gg in graspable_body.geoms:
             gg.friction = [0.8, 0.009, 0.0001]
         
-        friction_loss = 0.001
-        damping = 0.0001
+        friction_loss = 0.7
+        damping = 0.3
 
-        graspable_body.gravcomp = 0.8
+        graspable_body.gravcomp = 1
         graspable_body.add_joint(
             name="obj_t_joint_x", axis=[1, 0, 0], frictionloss=friction_loss, damping=damping,
             type=mujoco.mjtJoint.mjJNT_SLIDE,
@@ -306,10 +308,10 @@ class ReachPoseEnv(MujocoEnv):
         return action
     
     def reward(self, key_points_distance : NDArray[np.float32], obj_displacmnet: np.float32, diff_orient: np.float32) -> np.float32:
-        weight_keypoints_error = 0.5
+        weight_keypoints_error = 1
         mean_error_dist = np.sum(key_points_distance)
         
-        weight_obj_error = 10
+        weight_obj_error = 1
         weight_wirst_orient = 1
         #print(f"obj_displacmnet  {obj_displacmnet*weight_obj_error}" )
         reward = -mean_error_dist*weight_keypoints_error - obj_displacmnet*weight_obj_error - diff_orient*weight_wirst_orient
@@ -347,7 +349,17 @@ class ReachPoseEnv(MujocoEnv):
         diff_quat = quaternions.qmult(quaternion_conjugate, quaternion_real)
         anglediff  = np.linalg.norm(np.array([1, 0, 0, 0]) - diff_quat)
 
-        return  distance_key_points_array, object_erorr, anglediff
+
+
+        joint_id_x = self.data.model.joint(name="obj_t_joint_x").id
+        joint_id_y = self.data.model.joint(name="obj_t_joint_y").id
+        joint_id_z = self.data.model.joint(name="obj_t_joint_z").id
+        obj_speed_x = self.data.qvel[joint_id_x]
+        obj_speed_y = self.data.qvel[joint_id_y]
+        obj_speed_z = self.data.qvel[joint_id_z]
+        obj_speed = np.linalg.norm(np.array([obj_speed_x, obj_speed_y, obj_speed_z]))
+
+        return  distance_key_points_array, obj_speed, anglediff
 # fmt: on
 def debug_env():
 
@@ -358,7 +370,7 @@ def debug_env():
     model_path_hand = "./mjcf/model_dexgraspnet/shadow_hand_wrist_free_special_path.xml"
 
 
-    obj_start_pos = np.array([0, -0.1, 0])
+    obj_start_pos = np.array([0, -0.3, 0])
     obj_start_quat = euler.euler2quat(np.deg2rad(45), np.deg2rad(0), np.deg2rad(0))
 
     core_mug = np.load(pos_path_name, allow_pickle=True)
@@ -428,7 +440,7 @@ def debug_env():
 
 def run_mpc():
     POSE_NUM = 3
-    obj_name = "core-bowl-a593e8863200fdb0664b3b9b23ddfcbc"
+    obj_name = "sem-Plate-9969f6178dcd67101c75d484f9069623"
     pos_path_name = "final_positions/" + obj_name + ".npy"
     mesh_path = "mjcf/model_dexgraspnet/meshes/objs/" + obj_name + "/coacd"
     model_path_hand = "./mjcf/model_dexgraspnet/shadow_hand_wrist_free_special_path.xml"
@@ -436,7 +448,7 @@ def run_mpc():
 
     obj_start_pos = np.array([0.0, -0.2, 0])
     #obj_start_pos = np.array([0.0, -0.1, 0])
-    obj_start_quat = euler.euler2quat(np.deg2rad(30), np.deg2rad(45), np.deg2rad(0))
+    obj_start_quat = euler.euler2quat(np.deg2rad(0), np.deg2rad(0), np.deg2rad(0))
 
     core_mug = np.load(pos_path_name, allow_pickle=True)
     qpos_hand = core_mug[POSE_NUM]["qpos"]
@@ -482,7 +494,7 @@ def run_mpc():
         obj_mesh_path=mesh_path,
         obj_start_pos=obj_start_pos,
         obj_start_quat=obj_start_quat,
-        obj_scale=core_mug[POSE_NUM]["scale"],
+        obj_scale=core_mug[POSE_NUM]["scale"]*0.9,
         frame_skip = 3
     )
 
@@ -516,19 +528,19 @@ def run_mpc():
         nx=68,
         nu=nu,
         warmup_iters=50,
-        online_iters=50,
-        num_samples=300,
-        num_elites=50,
+        online_iters=300,
+        num_samples=100,
+        num_elites=500,
         elites_keep_fraction=0.36,
-        horizon=8,
+        horizon=4,
         device="cpu",
-        alpha=0.3,
+        alpha=0.05,
         noise_beta=-3
     )
 
     if not os.path.exists(obj_name + str(POSE_NUM) + ".npz"):
         # assuming you have a gym-like env
-        MPC_STEPS = 15
+        MPC_STEPS = 30
         action_seq = []
         costs_seq = []
         obs_mpc_state = reacher.reset_mpc()
@@ -549,10 +561,10 @@ def run_mpc():
         print("File traj already exists")
         action_seq = np.load(obj_name + str(POSE_NUM) + ".npz")["arr_0"]
     obs_mpc_state = reacher.reset_mpc()
-
+    #reacher.kinematics_debug = True
 
     
-    
+    reacher.kinematics_debug = True
     viewer = mujoco.viewer.launch_passive(reacher.model, reacher.data)
     while True:
         for action_i in action_seq:
@@ -562,11 +574,33 @@ def run_mpc():
                 for i in range(50):
                     time.sleep(0.01)
                     viewer.sync()
+                    joint_id_x = reacher.data.model.joint(name="obj_t_joint_x").id
+                    joint_id_y = reacher.data.model.joint(name="obj_t_joint_y").id
+                    joint_id_z = reacher.data.model.joint(name="obj_t_joint_z").id
+                    obj_speed_x = reacher.data.qvel[joint_id_x]
+                    obj_speed_y = reacher.data.qvel[joint_id_y]
+                    obj_speed_z = reacher.data.qvel[joint_id_z]
+                    obj_speed = np.linalg.norm(np.array([obj_speed_x, obj_speed_y, obj_speed_z]))
+                    distance_key_points_array, obj_speed, anglediff = reacher._get_obs()
+                    print(f"Pose error: {np.sum(distance_key_points_array)}")
+
+
         for i in range(500):
             time.sleep(0.01)
             viewer.sync()
             mujoco.mj_step(reacher.model, reacher.data)
+            if reacher.kinematics_debug:
+                reacher.step(0)             
+            joint_id_x = reacher.data.model.joint(name="obj_t_joint_x").id
+            joint_id_y = reacher.data.model.joint(name="obj_t_joint_y").id
+            joint_id_z = reacher.data.model.joint(name="obj_t_joint_z").id
+            obj_speed_x = reacher.data.qvel[joint_id_x]
+            obj_speed_y = reacher.data.qvel[joint_id_y]
+            obj_speed_z = reacher.data.qvel[joint_id_z]
+            obj_speed = np.linalg.norm(np.array([obj_speed_x, obj_speed_y, obj_speed_z]))
+            print(f"Object speed: {obj_speed}")
 
+          
             
         reacher.reset_mpc()
 if __name__ == "__main__":
