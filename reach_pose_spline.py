@@ -104,7 +104,7 @@ def run_mpc():
         costs = []
  
         for one_state in sate_vec:
-            cost = reacher_dynamic.cost_mpc(one_state, 0)
+            cost, _ = reacher_dynamic.cost_mpc(one_state, 0)
             costs.append(cost)
         costs_tensor = Tensor(costs)
         return costs_tensor
@@ -112,58 +112,52 @@ def run_mpc():
     high_action = Tensor(reacher.action_space.high)
     low_action = Tensor(reacher.action_space.low)
     wide_action = high_action - low_action
-    noise_sigma = torch.diag(wide_action*0.25).double()
+    noise_sigma = torch.diag(wide_action*0.5).double()
     nu = reacher.action_space.shape[0]
-
+    MPC_STEPS = 100
     q0 = np.array([0, 0, 0])
     qf = np.array([1, 2, 3])
-    t =  1.0
+    traj_time =  MPC_STEPS*reacher.frame_skip*reacher.model.opt.timestep
 
     
-    q_action = reacher.data.ctrl
+    q_start = reacher.data.ctrl
     q_final = np.zeros(nu)
 
     for key, value in final_act_pose_sh_hand.items(): 
         q_final[reacher.data.actuator(name=key).id] = value
     
-    traj_fun = create_quintic_traj_function(q_action, q_final, t)
+    traj_fun = create_quintic_traj_function(q_start, q_final, traj_time)
+    traj_fun(traj_time)
     
     ctrl = MPPI(dynamics=dynamics_mpc_wrapper, 
             running_cost=runnng_cost, 
             nx = 68,
-            num_samples = 2000,
-            horizon=10,
+            num_samples = 1000,
+            horizon=4,
             device="cpu",
             u_min=low_action,
             u_max=high_action,
             noise_sigma=noise_sigma,)
     
-    # ctrl = iCEM(
-    #     dynamics=dynamics_mpc_wrapper,
-    #     trajectory_cost=cost_vec,
-    #     sigma=sigma,
-    #     nx=68,
-    #     nu=nu,
-    #     warmup_iters=50,
-    #     online_iters=300,
-    #     num_samples=100,
-    #     num_elites=500,
-    #     elites_keep_fraction=0.36,
-    #     horizon=4,
-    #     device="cpu",
-    #     alpha=0.05,
-    #     noise_beta=-3
-    # )
-
-    if not os.path.exists(obj_name + str(POSE_NUM) + ".npz"):
+ 
+    if not os.path.exists("MPPI_" + obj_name + str(POSE_NUM) + ".npz"):
         # assuming you have a gym-like env
-        MPC_STEPS = 100
+        
         action_seq = []
         costs_seq = []
         obs_mpc_state = reacher.reset_mpc()
         for i in range(MPC_STEPS):
-            action_i = ctrl.command(obs_mpc_state)
-            action_np = action_i.cpu().numpy()
+            current_time = i*reacher.frame_skip*reacher.model.opt.timestep
+            curent_q_CLEAR = traj_fun(current_time)[:,0]
+            nominal_u = torch.zeros(ctrl.T, nu)
+            for i_horizon in range(ctrl.T):
+                current_time_horiz = (i+i_horizon)*reacher.frame_skip*reacher.model.opt.timestep
+                curent_q = traj_fun(current_time_horiz)[:,0]
+                nominal_u[i_horizon] = Tensor(curent_q)
+            #ctrl.U = nominal_u
+            #ctrl.u_init = initial_q
+            #action_i = ctrl.command(obs_mpc_state, False)
+            action_np = nominal_u[0]
             obs_mpc_state = reacher.step_mpc(obs_mpc_state, action_np)
             #reacher.step(action.cpu().numpy())
             cost = reacher.cost_mpc(obs_mpc_state, 0)
@@ -173,15 +167,15 @@ def run_mpc():
             print(f"Action : {action_np}")
         reacher.close()
         print("Finish traj generate")
-        np.savez(obj_name + str(POSE_NUM), action_seq)
+        np.savez("MPPI_"  + obj_name + str(POSE_NUM), action_seq)
     else:
         print("File traj already exists")
-        action_seq = np.load(obj_name + str(POSE_NUM) + ".npz")["arr_0"]
+        action_seq = np.load("MPPI_" + obj_name + str(POSE_NUM) + ".npz")["arr_0"]
     obs_mpc_state = reacher.reset_mpc()
     #reacher.kinematics_debug = True
 
     
-    reacher.kinematics_debug = True
+    reacher.kinematics_debug = False
     viewer = mujoco.viewer.launch_passive(reacher.model, reacher.data)
     while True:
         for action_i in action_seq:
@@ -189,7 +183,7 @@ def run_mpc():
             for i in range(reacher.frame_skip):
                 mujoco.mj_step(reacher.model, reacher.data)
                 for i in range(50):
-                    time.sleep(0.01)
+                    time.sleep(0.001)
                     viewer.sync()
                     joint_id_x = reacher.data.model.joint(name="obj_t_joint_x").id
                     joint_id_y = reacher.data.model.joint(name="obj_t_joint_y").id
@@ -215,7 +209,9 @@ def run_mpc():
             obj_speed_y = reacher.data.qvel[joint_id_y]
             obj_speed_z = reacher.data.qvel[joint_id_z]
             obj_speed = np.linalg.norm(np.array([obj_speed_x, obj_speed_y, obj_speed_z]))
-            print(f"Object speed: {obj_speed}")
+            distance_key_points_array, obj_speed, anglediff = reacher._get_obs()
+            print(f"Pose error: {np.sum(distance_key_points_array)}")
+           
 
           
             

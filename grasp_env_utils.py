@@ -110,9 +110,12 @@ def quintic_func(q0, qf, T, qd0=0, qdf=0):
 # -------------------------------------------------------------------------- #
 
 
-def create_quintic_traj_function(q0: NDArray, qf: NDArray, t: float):
+def create_quintic_traj_function(q0: NDArray, qf: NDArray, t_final: float):
     def traj_function(time: float) -> NDArray:
-        return np.array([quintic_func(q0[i], qf[i], t)(time) for i in range(len(q0))])
+        # for q0_i, qf_i in zip(q0, qf):
+        #  q, dq, ddq = quintic_func(q0_i, qf_i, t_final)(time)
+ 
+        return np.array([quintic_func(q0[i], qf[i], t_final)(time)  for i in range(len(q0))])
     return traj_function
 
 
@@ -285,8 +288,8 @@ def main():
 
     final_position_wirst = {k: v for k, v in final_position.items() if k in wrist_names}
 
-    obj_quat = euler.euler2quat(np.deg2rad(45), np.deg2rad(-45), np.deg2rad(60))
-    obj_pos = [0.4, 0, 0.0]
+    obj_quat = euler.euler2quat(np.deg2rad(90), np.deg2rad(180), np.deg2rad(180))
+    obj_pos = [0.0, 0, 0.4]
 
     wirst_pos = np.array(
         [
@@ -346,9 +349,9 @@ def main():
         "robot0:THJ0",
     ]
 
-    composite_data.qpos[0] = -0.2
-    composite_data.qpos[1] = 0.2
-    composite_data.qpos[2] = 0.2
+    # composite_data.qpos[0] = -0.2
+    # composite_data.qpos[1] = 0.2
+    # composite_data.qpos[2] = 0.2
 
     composite_model.body("graspable_object").pos = obj_pos
     composite_model.body("graspable_object").quat = obj_quat
@@ -360,21 +363,21 @@ def main():
    
     
     fin_pose = get_final_bodies_pose(final_position, model_for_pose_path)
-    set_position_kinematics(composite_data, final_position)
+    #set_position_kinematics(composite_data, final_position)
     
     viewer = mujoco.viewer.launch_passive(composite_model, composite_data)
     while True:
         counter += 1
         step_start = time.time()
 
-        if counter == 800:
+        if counter == 100:
             print("Change")
             set_position(composite_data, final_position, default_mapping)
 
         if counter == 1000:
             print("Enabale gravity")
 
-        # mujoco.mj_step(composite_model, composite_data)
+        mujoco.mj_step(composite_model, composite_data)
         viewer.sync()
         time_until_next_step = composite_model.opt.timestep - (time.time() - step_start)
         if time_until_next_step > 0:
