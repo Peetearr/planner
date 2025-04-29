@@ -354,82 +354,7 @@ class ReachPoseEnv(MujocoEnv):
 
         return  distance_key_points_array, obj_speed, anglediff, object_erorr
 # fmt: on
-def debug_env():
-
-    POSE_NUM = 3
-    obj_name = "sem-Plate-9969f6178dcd67101c75d484f9069623"
-    pos_path_name = "final_positions/" + obj_name + ".npy"
-    mesh_path = "mjcf/model_dexgraspnet/meshes/objs/" + obj_name + "/coacd"
-    model_path_hand = "./mjcf/model_dexgraspnet/shadow_hand_wrist_free_special_path.xml"
-
-
-    obj_start_pos = np.array([0, -0.3, 0])
-    obj_start_quat = euler.euler2quat(np.deg2rad(45), np.deg2rad(0), np.deg2rad(0))
-
-    core_mug = np.load(pos_path_name, allow_pickle=True)
-    qpos_hand = core_mug[POSE_NUM]["qpos"]
-
-    wirst_pos = np.array(
-        [
-            qpos_hand["WRJTx"],
-            qpos_hand["WRJTy"],
-            qpos_hand["WRJTz"],
-        ]
-    )
-    wirst_quat = euler.euler2quat(
-        qpos_hand["WRJRx"],
-        qpos_hand["WRJRy"],
-        qpos_hand["WRJRz"],
-    )
-
-
-    transformed_wirst_pose, transformed_rot = transform_wirst_pos_to_obj(
-        obj_start_pos, obj_start_quat, wirst_pos, wirst_quat
-    )
-
-    transformed_wirst_euler_ang = euler.mat2euler(transformed_rot)
-
-    new_wirst_pos = {
-        "WRJRx": transformed_wirst_euler_ang[0],
-        "WRJRy": transformed_wirst_euler_ang[1],
-        "WRJRz": transformed_wirst_euler_ang[2],
-        "WRJTx": transformed_wirst_pose[0],
-        "WRJTy": transformed_wirst_pose[1],
-        "WRJTz": transformed_wirst_pose[2],
-    }
-
-    for key in new_wirst_pos.keys():
-        qpos_hand[key] = new_wirst_pos[key]
-
-    final_act_pose_sh_hand = convert_pose_dexgraspnet_to_mujoco(qpos_hand, default_mapping)
-    key_body_final_pos = get_final_bodies_pose(qpos_hand, model_path_hand)
-
-    config = ReachPoseEnvConfig(
-        hand_final_full_pose=qpos_hand,
-        model_path_hand=model_path_hand,
-        obj_mesh_path=mesh_path,
-        obj_start_pos=obj_start_pos,
-        obj_start_quat=obj_start_quat,
-        obj_scale=core_mug[POSE_NUM]["scale"],
-        frame_skip = 2
-    )
-
-    reacher = ReachPoseEnv(config, key_pose_dict=key_body_final_pos, render_mode="human")
-    reacher.kinematics_debug = True
-    for _ in range(5000):
-        bingo_bongo = reacher.action_space.sample()
-        # bingo_bongo[0:6] = [0, 0, 0, 0, 0, 0]
-        for _ in range(100):
-            #bingo_bongo[6] = 1
-            bingo_action = np.zeros(reacher.action_space.shape)
-            id_action_1 = reacher.data.actuator(name="WRJTy").id
-            #bingo_action[id_action_1] = 0
-
-            id_action_2 = reacher.data.actuator(name="WRJTx").id
-            #bingo_action[id_action_2] = 4
-            reacher.step(bingo_action)
-
-        reacher.reset()
+ 
 
 def run_mpc():
     POSE_NUM = 10
@@ -443,9 +368,9 @@ def run_mpc():
     obj_quat_good = euler.euler2quat(np.deg2rad(90), np.deg2rad(180), np.deg2rad(180))
     obj_pos_good = [0.0, 0, 0.4]
 
-    obj_start_pos = obj_pos_good
+    obj_start_pos = [0.0, 0, -0.5]
  
-    obj_start_quat = obj_quat_good
+    obj_start_quat = euler.euler2quat(np.deg2rad(20), np.deg2rad(90), np.deg2rad(180))
 
     core_mug = np.load(pos_path_name, allow_pickle=True)
     qpos_hand = core_mug[POSE_NUM]["qpos"]
@@ -516,28 +441,31 @@ def run_mpc():
             costs.append(accum_cost_trj)
             costs_tensor = Tensor(costs)
         return costs_tensor
+    
+    initial_mean = (reacher.action_space.low + reacher.action_space.high)/2
+    initial_sigma = reacher.action_space.high - initial_mean
 
-    sigma = Tensor(reacher.action_space.low)
     ctrl = iCEM(
         dynamics=dynamics_mpc_wrapper,
         trajectory_cost=cost_vec,
-        sigma=sigma,
+        sigma=Tensor(initial_sigma),
         nx=68,
         nu=nu,
         warmup_iters=20,
         online_iters=20,
-        num_samples=1000,
-        num_elites=100,
+        num_samples=100,
+        num_elites=10,
         elites_keep_fraction=0.5,
         horizon=7,
         device="cpu",
         alpha=0.005,
-        noise_beta=2
+        noise_beta=2, 
+        low_bound_action=reacher.action_space.low,
+        high_bound_action=reacher.action_space.high,
     )
     
     
-    initial_mean = (reacher.action_space.low + reacher.action_space.high)/2
-    initial_sigma = reacher.action_space.high - initial_mean
+
 
     ctrl.mean = Tensor(initial_mean)
     ctrl.sigma = Tensor(initial_sigma)
