@@ -2,7 +2,7 @@ from copy import deepcopy
 import os
 import random
 import time
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 import mujoco
 import numpy as np
 import gymnasium as gym
@@ -24,6 +24,10 @@ from pytorch_icem import iCEM, icem
 from joblib import Parallel, delayed
 from torch import Tensor
 import torch
+
+
+from gymnasium import error, spaces
+
 
 @dataclass
 class ReachPoseEnvConfig:
@@ -81,13 +85,10 @@ class ReachPoseEnv(MujocoEnv):
 
         self.action_space = self.init_action_space(config.model_path_hand)
 
-        # TODO: Define observation space properly
-        observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(4,), dtype=np.float32)
-
         super().__init__(
             model_path=config.model_path_hand,
             frame_skip=config.frame_skip,
-            observation_space=observation_space,
+            observation_space=None,
             render_mode=render_mode,
             **kwargs,
         )
@@ -102,8 +103,8 @@ class ReachPoseEnv(MujocoEnv):
                 rgba=[1, 1, 0.1, 0.5],
                 size=[0.003, 0.003, 0.003],
                 pos=pose,
-                contype = 0,
-                conaffinity = 0,
+                contype=0,
+                conaffinity=0,
             )
 
     def reset(
@@ -163,7 +164,7 @@ class ReachPoseEnv(MujocoEnv):
 
     def simultion_settings(self, spec: mujoco.MjSpec):
         spec.option.integrator = mujoco.mjtIntegrator.mjINT_IMPLICIT  # type: ignore
-        #spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
+        # spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
         spec.option.timestep = 0.0025
 
     def add_graspable_object_spec(self, spec):
@@ -215,48 +216,64 @@ class ReachPoseEnv(MujocoEnv):
             type=mujoco.mjtJoint.mjJNT_HINGE,
         )
 
+    def get_obs_vector(self, obs_dict: Dict[str, Any]) -> NDArray:
+        """
+        Get the observation of the environment.
+        """
+        sorted_keys = sorted(obs_dict.keys())
+        obs_list = []
+        for key in sorted_keys:
+            if obs_dict[key] is np.ndarray:
+                obs_list.append(obs_dict[key])
+        obs_list = np.hstack(obs_list)
+        return obs_list
 
-    def step(self, action: NDArray[np.float32]) -> Tuple[NDArray, np.float32, bool, bool, Dict[str, np.float64]]:
-        maped_action = self.map_action_to_model(action)
-        copied_fin_pose = deepcopy(self.hand_final_full_pose)
+    def step(self, action: NDArray[np.float32]) -> tuple[NDArray, np.float32, bool, bool, dict[str, Any]]: # type: ignore
         
-        distance_key_points_array, object_erorr, diff_orient, obj_pose_err = self._get_obs()
+        truncated_action = np.clip(action, self.action_space.low, self.action_space.high)
+        maped_action = self.convert_action_to_model(truncated_action)
+      
         if self.kinematics_debug:
+            copied_fin_pose = deepcopy(self.hand_final_full_pose)
             mujoco.mj_kinematics(self.model, self.data)
             
             for key in self.hand_final_full_pose.keys():
                 copied_fin_pose[key] += np.random.normal(0, 0.000001)
             set_position_kinematics(self.data, copied_fin_pose)
-            state_1 = np.hstack((self.data.qpos, self.data.qvel))
-            cosik = self.cost_mpc(state_1, 0)
-            #print(cosik)
         else:
             self.do_simulation(maped_action, self.frame_skip)
 
+        full_dict_obs = self._get_full_obs()
+        reward, decomposed_reward = self.reward(full_dict_obs)
+        reduced_obs = self.get_obs_vector(full_dict_obs)
         if self.render_mode == "human":
             self.render()
-
-
         
-        reward = np.float32(0.0) 
-        obs = np.hstack([distance_key_points_array, object_erorr])
-        return obs, reward, False, False, {}
+        debug_dict = {}
+        debug_dict["state"] = self.get_state()
+        debug_dict["full_obs"] = full_dict_obs
+        debug_dict["decomposed_reward"] = decomposed_reward
+        return reduced_obs, reward, False, False, debug_dict
     
-    def step_mpc(self, state_dict, action): 
+    def get_state(self) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        state_tuple = (self.data.qpos, self.data.qvel)
+        return state_tuple
+
+    def step_mpc(self, state_vec, action): 
         number_pos = len(self.data.qpos)
         number_vel = len(self.data.qvel)
-        qp = state_dict[:number_pos]
-        qv = state_dict[number_pos:number_pos + number_vel]
+        qp = state_vec[:number_pos]
+        qv = state_vec[number_pos:number_pos + number_vel]
         self.set_state(qp, qv)
-        truncated_action = np.clip(action, self.action_space.low, self.action_space.high)
-        self.do_simulation(truncated_action,  self.frame_skip)
+        
+        self.do_simulation(action,  self.frame_skip)
         
         if self.render_mode == "human":
             self.render()
 
-        res = np.hstack((self.data.qpos, self.data.qvel))
-        return res
-    
+        state = np.hstack((self.data.qpos, self.data.qvel))
+        return state
+
     def parralel_step_mpc(self, state_vector, action_vector):
         # res = Parallel(n_jobs=10, return_as="list")(
         # delayed(return_big_object)(i) for i in range(150))
@@ -267,17 +284,17 @@ class ReachPoseEnv(MujocoEnv):
 
         tens=Tensor(res_states)
         return tens
-    
-    def cost_mpc(self, state_dict, action):
+
+    def cost_mpc(self, state_vec, action):
         number_pos = len(self.data.qpos)
         number_vel = len(self.data.qvel)
-        qp = state_dict[:number_pos]
-        qv = state_dict[number_pos:number_pos + number_vel]
+        qp = state_vec[:number_pos]
+        qv = state_vec[number_pos:number_pos + number_vel]
         self.set_state(qp, qv)
-        distance_key_points_array, object_erorr, diff_orient, obj_pose_err = self._get_obs()
-        rew, decompose = self.reward(distance_key_points_array, object_erorr, diff_orient)
- 
-        control_cost = np.linalg.norm(self.data.ctrl - np.array(action))
+        full_obs_dict = self._get_full_obs()
+
+        rew, decompose = self.reward(full_obs_dict)
+
         cost = -rew  
         return cost, decompose
 
@@ -292,27 +309,33 @@ class ReachPoseEnv(MujocoEnv):
         ret_state_dict["qpos"] = self.data.qpos
         ret_state_dict["qvel"] = self.data.qvel
         res = np.hstack((self.data.qpos, self.data.qvel))
-        return res 
- 
-    def map_action_to_model(self, action: np.ndarray) -> np.ndarray:
+        return res
+
+    def convert_action_to_model(self, action: np.ndarray) -> np.ndarray:
         # Overide the action space to match the mujoco model
         return action
     
-    def reward(self, key_points_distance : NDArray[np.float32], obj_displacmnet: np.float32, diff_orient: np.float32) -> tuple[np.float32, list]:
+    def reward(self, obs_dict: Dict[str, np.float32]) -> tuple[np.float32, dict]:
         weight_keypoints_error = 1.5
-        mean_error_dist = np.sum(key_points_distance)
-        
-        weight_obj_error = 0.1
+        weight_obj_error = 10
         weight_wirst_orient = 3
-        #print(f"obj_displacmnet  {obj_displacmnet*weight_obj_error}" )
-        reward = -mean_error_dist*weight_keypoints_error - obj_displacmnet*weight_obj_error - diff_orient*weight_wirst_orient
-        r1 = -mean_error_dist*weight_keypoints_error
-        r2 = -obj_displacmnet*weight_obj_error
-        r3 = -diff_orient*weight_wirst_orient
-        return reward, [r1, r2, r3]
+        
+        mean_error_dist = np.sum(obs_dict["distance_key_points_array"])
+
+        r1 = -mean_error_dist * weight_keypoints_error
+        r2 = -obs_dict["object_error"] * weight_obj_error
+        r3 = -obs_dict["anglediff"] * weight_wirst_orient
+        
+        reward = r1 + r2 + r3
+
+        decompose = {
+            "distance_key_points": r1,
+            "obj_displacement": r2,
+            "diff_orient": r3,
+        }
+        return reward, decompose
     
-    
-    def _get_obs(self) -> Tuple[np.ndarray, np.float32, np.float32, np.float32]:
+    def _get_full_obs(self) -> Dict[str, Any]:
         """
         Get the observation of the environment.
         """
@@ -352,24 +375,30 @@ class ReachPoseEnv(MujocoEnv):
         obj_speed_z = self.data.qvel[joint_id_z]
         obj_speed = np.linalg.norm(np.array([obj_speed_x, obj_speed_y, obj_speed_z]))
 
-        return  distance_key_points_array, obj_speed, anglediff, object_erorr
+        return  {
+            "distance_key_points_array": distance_key_points_array,
+            "obj_speed": obj_speed,
+            "anglediff": anglediff,
+            "object_error": object_erorr,
+        }
+
+
 # fmt: on
- 
+
 
 def run_mpc():
     POSE_NUM = 10
-    SHACKER = False
+
     obj_name = "sem-Plate-9969f6178dcd67101c75d484f9069623"
     pos_path_name = "final_positions/" + obj_name + ".npy"
     mesh_path = "mjcf/model_dexgraspnet/meshes/objs/" + obj_name + "/coacd"
     model_path_hand = "./mjcf/model_dexgraspnet/shadow_hand_wrist_free_special_path.xml"
 
-     
     obj_quat_good = euler.euler2quat(np.deg2rad(90), np.deg2rad(180), np.deg2rad(180))
     obj_pos_good = [0.0, 0, 0.4]
 
     obj_start_pos = [0.0, 0, -0.5]
- 
+
     obj_start_quat = euler.euler2quat(np.deg2rad(20), np.deg2rad(90), np.deg2rad(180))
 
     core_mug = np.load(pos_path_name, allow_pickle=True)
@@ -387,7 +416,6 @@ def run_mpc():
         qpos_hand["WRJRy"],
         qpos_hand["WRJRz"],
     )
-
 
     transformed_wirst_pose, transformed_rot = transform_wirst_pos_to_obj(
         obj_start_pos, obj_start_quat, wirst_pos, wirst_quat
@@ -416,20 +444,18 @@ def run_mpc():
         obj_mesh_path=mesh_path,
         obj_start_pos=obj_start_pos,
         obj_start_quat=obj_start_quat,
-        obj_scale=core_mug[POSE_NUM]["scale"]*0.9,
-        frame_skip = 4
+        obj_scale=core_mug[POSE_NUM]["scale"] * 0.9,
+        frame_skip=4,
     )
 
-    reacher = ReachPoseEnv(config, key_pose_dict=key_body_final_pos, render_mode="human")
+    reacher = ReachPoseEnv(config, key_pose_dict=key_body_final_pos)
     reacher_dynamic = ReachPoseEnv(config, key_pose_dict=key_body_final_pos)
     obs_mpc_state = reacher.reset_mpc()
     nu = reacher.action_space.shape[0]
 
-
     # create controller with chosen parameters
     def dynamics_mpc_wrapper(state_vec: Tensor, action_vec: Tensor):
         return reacher_dynamic.parralel_step_mpc(state_vec, action_vec)
-
 
     def cost_vec(sate_vec, action_vec):
         costs = []
@@ -441,8 +467,8 @@ def run_mpc():
             costs.append(accum_cost_trj)
             costs_tensor = Tensor(costs)
         return costs_tensor
-    
-    initial_mean = (reacher.action_space.low + reacher.action_space.high)/2
+
+    initial_mean = (reacher.action_space.low + reacher.action_space.high) / 2
     initial_sigma = reacher.action_space.high - initial_mean
 
     ctrl = iCEM(
@@ -459,59 +485,40 @@ def run_mpc():
         horizon=7,
         device="cpu",
         alpha=0.005,
-        noise_beta=2, 
+        noise_beta=2,
         low_bound_action=reacher.action_space.low,
         high_bound_action=reacher.action_space.high,
     )
-    
-    
-
 
     ctrl.mean = Tensor(initial_mean)
     ctrl.sigma = Tensor(initial_sigma)
 
     if not os.path.exists(obj_name + str(POSE_NUM) + ".npz"):
 
-        previous_cost = 100
-        MPC_STEPS = 25
+        MPC_STEPS = 40
         action_seq = []
         costs_seq = []
         obs_mpc_state = reacher.reset_mpc()
-        #ctrl.mean = reacher.action_space.sample()
+
         for i in range(MPC_STEPS):
-
-            new_sigma = Tensor(reacher.action_space.high) - initial_mean
-            #ctrl.std = new_sigma
-
-           
             action_i = ctrl.command(obs_mpc_state, shift_nominal_trajectory=False)
             action_np = action_i.cpu().numpy()
-            #ctrl.std
-
             obs_mpc_state = reacher.step_mpc(obs_mpc_state, action_np)
-            #ctrl.kept_elites = None
-            
+
             cost, decopose = reacher.cost_mpc(obs_mpc_state, action_np)
             costs_seq.append(cost)
             action_seq.append(action_np)
-            
-            if previous_cost < cost and SHACKER:
-                ctrl.reset()
-                ctrl.mean = Tensor(initial_mean)
- 
-                print("Reset")
-            previous_cost = cost
 
             print(f"Cost : {cost}")
-            #print(f"Action : {action_np}")
+            # print(f"Action : {action_np}")
             print(f"Step : {i}")
-            mean_normilize =  ctrl.mean[0]  
+            mean_normilize = ctrl.mean[0]
             std_normilize = ctrl.std[0] / initial_sigma
             print(f"MEAN[0] {np.array(mean_normilize).round(3)}")
             print()
             print(f"STD[0] {np.array(std_normilize).round(3)}")
 
-            ctrl.shift()
+            # ctrl.shift()
         reacher.close()
         print("Finish traj generate")
         np.savez(obj_name + str(POSE_NUM), action_seq)
@@ -520,8 +527,8 @@ def run_mpc():
         print("File traj already exists")
         action_seq = np.load(obj_name + str(POSE_NUM) + ".npz")["arr_0"]
     obs_mpc_state = reacher.reset_mpc()
-    #reacher.kinematics_debug = True
- 
+    # reacher.kinematics_debug = True
+
     viewer = mujoco.viewer.launch_passive(reacher.model, reacher.data)
     dist_reward = []
     obj_speed_reward = []
@@ -542,20 +549,24 @@ def run_mpc():
                 obj_speed_z = reacher.data.qvel[joint_id_z]
                 obj_speed = np.linalg.norm(np.array([obj_speed_x, obj_speed_y, obj_speed_z]))
 
-            distance_key_points_array, obj_speed, anglediff, obj_pose_err = reacher._get_obs()
+            full_obs = reacher._get_full_obs()
+            distance_key_points_array = full_obs["distance_key_points_array"]
+            obj_speed = full_obs["obj_speed"]
+            anglediff = full_obs["anglediff"]
+            obj_pose_err = full_obs["object_error"]
             rew, decompose = reacher.reward(distance_key_points_array, obj_pose_err, anglediff)
             dist_reward.append(decompose[0])
             obj_speed_reward.append(decompose[1])
-            wirst_orint_reward.append(decompose[2])    
+            wirst_orint_reward.append(decompose[2])
     reacher.kinematics_debug = True
     for i in range(100):
         time.sleep(0.01)
         viewer.sync()
-        
+
         if reacher.kinematics_debug:
             reacher.step(0)
         else:
-            mujoco.mj_step(reacher.model, reacher.data)             
+            mujoco.mj_step(reacher.model, reacher.data)
         joint_id_x = reacher.data.model.joint(name="obj_t_joint_x").id
         joint_id_y = reacher.data.model.joint(name="obj_t_joint_y").id
         joint_id_z = reacher.data.model.joint(name="obj_t_joint_z").id
@@ -565,33 +576,29 @@ def run_mpc():
         obj_speed = np.linalg.norm(np.array([obj_speed_x, obj_speed_y, obj_speed_z]))
         print(f"Object speed: {obj_speed}")
 
-          
-            
     reacher.reset_mpc()
-
 
     import matplotlib.pyplot as plt
 
     plt.figure()
 
-    plt.plot(dist_reward , label="r1")
+    plt.plot(dist_reward, label="r1")
     plt.xlabel("Time step")
     plt.ylabel("Distance reward")
 
     plt.figure()
 
-    plt.plot(obj_speed_reward , label="r2")
+    plt.plot(obj_speed_reward, label="r2")
     plt.xlabel("Time step")
     plt.ylabel("Obj_speed reward")
- 
-
 
     plt.figure()
 
-    plt.plot(wirst_orint_reward , label="r3")
+    plt.plot(wirst_orint_reward, label="r3")
     plt.xlabel("Time step")
     plt.ylabel("wirst_orint_reward")
     plt.show()
-    
+
+
 if __name__ == "__main__":
     run_mpc()
