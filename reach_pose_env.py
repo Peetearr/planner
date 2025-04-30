@@ -257,45 +257,7 @@ class ReachPoseEnv(MujocoEnv):
         state_vec = np.hstack([self.data.qpos, self.data.qvel])
         return state_vec
 
-    def step_mpc(self, state_vec, action): 
-        number_pos = len(self.data.qpos)
-        number_vel = len(self.data.qvel)
-        qp = state_vec[:number_pos]
-        qv = state_vec[number_pos:number_pos + number_vel]
-        self.set_state(qp, qv)
-        
-        self.do_simulation(action,  self.frame_skip)
-        
-        if self.render_mode == "human":
-            self.render()
 
-        state = np.hstack((self.data.qpos, self.data.qvel))
-        return state
-
-    
-    def parralel_step_mpc(self, state_vector, action_vector):
-        # res = Parallel(n_jobs=10, return_as="list")(
-        # delayed(return_big_object)(i) for i in range(150))
-        res_states = []
-        for state, act in zip(state_vector, action_vector):
-            state = self.step_mpc(state, act)
-            res_states.append(state)
-
-        tens=Tensor(res_states)
-        return tens
-
-    def cost_mpc(self, state_vec, action):
-        number_pos = len(self.data.qpos)
-        number_vel = len(self.data.qvel)
-        qp = state_vec[:number_pos]
-        qv = state_vec[number_pos:number_pos + number_vel]
-        self.set_state(qp, qv)
-        full_obs_dict = self._get_full_obs()
-
-        rew, decompose = self.reward(full_obs_dict)
-
-        cost = -rew  
-        return cost, decompose
 
     def reset_mpc(
         self,

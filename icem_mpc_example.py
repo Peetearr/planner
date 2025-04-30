@@ -50,13 +50,14 @@ def cost_traj_mpc_tensor(env: ReachPoseEnv, state_vec: Tensor, action_vec: Tenso
 def run_mpc():
     POSE_NUM, obj_name, key_body_final_pos, config, final_act_pose_sh_hand = prepare_env_config()
 
-    reacher = ReachPoseEnv(config, key_pose_dict=key_body_final_pos)
+    reacher = ReachPoseEnv(config, key_pose_dict=key_body_final_pos, render_mode="human")
     reacher_dynamic = ReachPoseEnv(config, key_pose_dict=key_body_final_pos)
 
     vector_dynamics = partial(dynamics_mpc_wrapper_tensor, reacher_dynamic)
     vector_cost = partial(cost_traj_mpc_tensor, reacher_dynamic)
 
-    obs_mpc_state = reacher.reset_mpc()
+    _, info = reacher.reset()
+    start_state = reacher.get_state()
     nu = reacher.action_space.shape[0]
 
     initial_mean = (reacher.action_space.low + reacher.action_space.high) / 2
@@ -66,12 +67,12 @@ def run_mpc():
         dynamics=vector_dynamics,
         trajectory_cost=vector_cost,
         sigma=Tensor(initial_sigma),
-        nx=68,
+        nx=start_state.shape[0],
         nu=nu,
         warmup_iters=20,
         online_iters=20,
-        num_samples=100,
-        num_elites=10,
+        num_samples=150,
+        num_elites=20,
         elites_keep_fraction=0.5,
         horizon=7,
         device="cpu",
@@ -89,19 +90,18 @@ def run_mpc():
         MPC_STEPS = 40
         action_seq = []
         costs_seq = []
-        obs_mpc_state = reacher.reset_mpc()
+        obs_mpc_state = start_state
 
         for i in range(MPC_STEPS):
             action_i = ctrl.command(obs_mpc_state, shift_nominal_trajectory=False)
             action_np = action_i.cpu().numpy()
-            obs_mpc_state = reacher.step_mpc(obs_mpc_state, action_np)
+            reduced_obs, reward, _, _, debug_dict = reacher.step(action_np)
+            obs_mpc_state = reacher.get_state()
 
-            cost, decopose = reacher.cost_mpc(obs_mpc_state, action_np)
-            costs_seq.append(cost)
+            costs_seq.append(reward)
             action_seq.append(action_np)
 
-            print(f"Cost : {cost}")
-            # print(f"Action : {action_np}")
+            print(f"Cost : {reward}")
             print(f"Step : {i}")
             mean_normilize = ctrl.mean[0]
             std_normilize = ctrl.std[0] / initial_sigma
@@ -109,7 +109,7 @@ def run_mpc():
             print()
             print(f"STD[0] {np.array(std_normilize).round(3)}")
 
-            # ctrl.shift()
+            ctrl.shift()
         reacher.close()
         print("Finish traj generate")
         np.savez(obj_name + str(POSE_NUM), action_seq)
@@ -117,12 +117,12 @@ def run_mpc():
     else:
         print("File traj already exists")
         action_seq = np.load(obj_name + str(POSE_NUM) + ".npz")["arr_0"]
-    obs_mpc_state = reacher.reset_mpc()
+    obs_mpc_state = reacher.reset()
     # reacher.kinematics_debug = True
 
     viewer = mujoco.viewer.launch_passive(reacher.model, reacher.data)
     dist_reward = []
-    obj_speed_reward = []
+    obj_displacement_reward = []
     wirst_orint_reward = []
 
     for action_i in action_seq:
@@ -132,42 +132,22 @@ def run_mpc():
             for i in range(50):
                 time.sleep(0.005)
                 viewer.sync()
-                joint_id_x = reacher.data.model.joint(name="obj_t_joint_x").id
-                joint_id_y = reacher.data.model.joint(name="obj_t_joint_y").id
-                joint_id_z = reacher.data.model.joint(name="obj_t_joint_z").id
-                obj_speed_x = reacher.data.qvel[joint_id_x]
-                obj_speed_y = reacher.data.qvel[joint_id_y]
-                obj_speed_z = reacher.data.qvel[joint_id_z]
-                obj_speed = np.linalg.norm(np.array([obj_speed_x, obj_speed_y, obj_speed_z]))
-
             full_obs = reacher._get_full_obs()
-            distance_key_points_array = full_obs["distance_key_points_array"]
-            obj_speed = full_obs["obj_speed"]
-            anglediff = full_obs["anglediff"]
-            obj_pose_err = full_obs["object_error"]
-            rew, decompose = reacher.reward(distance_key_points_array, obj_pose_err, anglediff)
-            dist_reward.append(decompose[0])
-            obj_speed_reward.append(decompose[1])
-            wirst_orint_reward.append(decompose[2])
+            rew, decompose = reacher.reward(full_obs, action_i)
+            dist_reward.append(decompose["distance_key_points"])
+            obj_displacement_reward.append(decompose["obj_displacement"])
+            wirst_orint_reward.append(decompose["diff_orient"])
+    
     reacher.kinematics_debug = True
     for i in range(100):
         time.sleep(0.01)
         viewer.sync()
-
         if reacher.kinematics_debug:
             reacher.step(0)
         else:
             mujoco.mj_step(reacher.model, reacher.data)
-        joint_id_x = reacher.data.model.joint(name="obj_t_joint_x").id
-        joint_id_y = reacher.data.model.joint(name="obj_t_joint_y").id
-        joint_id_z = reacher.data.model.joint(name="obj_t_joint_z").id
-        obj_speed_x = reacher.data.qvel[joint_id_x]
-        obj_speed_y = reacher.data.qvel[joint_id_y]
-        obj_speed_z = reacher.data.qvel[joint_id_z]
-        obj_speed = np.linalg.norm(np.array([obj_speed_x, obj_speed_y, obj_speed_z]))
-        print(f"Object speed: {obj_speed}")
 
-    reacher.reset_mpc()
+  
 
     import matplotlib.pyplot as plt
 
@@ -179,9 +159,9 @@ def run_mpc():
 
     plt.figure()
 
-    plt.plot(obj_speed_reward, label="r2")
+    plt.plot(obj_displacement_reward, label="r2")
     plt.xlabel("Time step")
-    plt.ylabel("Obj_speed reward")
+    plt.ylabel("Obj displacement reward")
 
     plt.figure()
 
