@@ -9,6 +9,54 @@ from torch import Tensor
 from reach_pose_env import ReachPoseEnv
 import gymnasium as gym
 from functools import partial
+import matplotlib.pyplot as plt
+
+def trajectory_player(reacher_pose_env: ReachPoseEnv, action_seq):
+    viewer = mujoco.viewer.launch_passive(reacher_pose_env.model, reacher_pose_env.data)
+    dist_reward = []
+    obj_displacement_reward = []
+    wirst_orint_reward = []
+
+    for action_i in action_seq:
+        reacher_pose_env.data.ctrl = action_i
+        for i in range(reacher_pose_env.frame_skip):
+            mujoco.mj_step(reacher_pose_env.model, reacher_pose_env.data)
+            for i in range(50):
+                time.sleep(0.005)
+                viewer.sync()
+            full_obs = reacher_pose_env._get_full_obs()
+            rew, decompose = reacher_pose_env.reward(full_obs, action_i)
+            dist_reward.append(decompose["distance_key_points"])
+            obj_displacement_reward.append(decompose["obj_displacement"])
+            wirst_orint_reward.append(decompose["diff_orient"])
+
+    reacher_pose_env.kinematics_debug = True
+    for i in range(100):
+        time.sleep(0.01)
+        viewer.sync()
+        if reacher_pose_env.kinematics_debug:
+            reacher_pose_env.step(0)
+        else:
+            mujoco.mj_step(reacher_pose_env.model, reacher_pose_env.data)
+            
+    plt.figure()
+
+    plt.plot(dist_reward, label="r1")
+    plt.xlabel("Time step")
+    plt.ylabel("Distance reward")
+
+    plt.figure()
+
+    plt.plot(obj_displacement_reward, label="r2")
+    plt.xlabel("Time step")
+    plt.ylabel("Obj displacement reward")
+
+    plt.figure()
+
+    plt.plot(wirst_orint_reward, label="r3")
+    plt.xlabel("Time step")
+    plt.ylabel("wirst_orint_reward")
+    plt.show()
 
 
 def dynamics_mpc_wrapper_np(env: ReachPoseEnv, state_vec: np.ndarray, action_vec: np.ndarray) -> np.ndarray:
@@ -118,57 +166,11 @@ def run_mpc():
         print("File traj already exists")
         action_seq = np.load(obj_name + str(POSE_NUM) + ".npz")["arr_0"]
     obs_mpc_state = reacher.reset()
-    # reacher.kinematics_debug = True
 
-    viewer = mujoco.viewer.launch_passive(reacher.model, reacher.data)
-    dist_reward = []
-    obj_displacement_reward = []
-    wirst_orint_reward = []
 
-    for action_i in action_seq:
-        reacher.data.ctrl = action_i
-        for i in range(reacher.frame_skip):
-            mujoco.mj_step(reacher.model, reacher.data)
-            for i in range(50):
-                time.sleep(0.005)
-                viewer.sync()
-            full_obs = reacher._get_full_obs()
-            rew, decompose = reacher.reward(full_obs, action_i)
-            dist_reward.append(decompose["distance_key_points"])
-            obj_displacement_reward.append(decompose["obj_displacement"])
-            wirst_orint_reward.append(decompose["diff_orient"])
-    
-    reacher.kinematics_debug = True
-    for i in range(100):
-        time.sleep(0.01)
-        viewer.sync()
-        if reacher.kinematics_debug:
-            reacher.step(0)
-        else:
-            mujoco.mj_step(reacher.model, reacher.data)
+    trajectory_player(reacher, action_seq)
 
-  
 
-    import matplotlib.pyplot as plt
-
-    plt.figure()
-
-    plt.plot(dist_reward, label="r1")
-    plt.xlabel("Time step")
-    plt.ylabel("Distance reward")
-
-    plt.figure()
-
-    plt.plot(obj_displacement_reward, label="r2")
-    plt.xlabel("Time step")
-    plt.ylabel("Obj displacement reward")
-
-    plt.figure()
-
-    plt.plot(wirst_orint_reward, label="r3")
-    plt.xlabel("Time step")
-    plt.ylabel("wirst_orint_reward")
-    plt.show()
 
 
 if __name__ == "__main__":
