@@ -1,32 +1,19 @@
 from copy import deepcopy
-import os
-import random
-import time
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 import mujoco
 import numpy as np
-import gymnasium as gym
 from gymnasium.envs.mujoco.mujoco_env import MujocoEnv
 import transforms3d.euler as euler
-from transforms3d import affines
 from transforms3d import quaternions
 from grasp_env_utils import (
-    default_mapping,
-    get_final_bodies_pose,
     get_key_bodies_pose,
     set_position_kinematics,
-    transform_wirst_pos_to_obj,
 )
+
 from load_complex_obj import add_graspable_body, add_meshes_from_folder
 from numpy.typing import NDArray
-from dataclasses import dataclass, field
-from pytorch_icem import iCEM, icem
-from joblib import Parallel, delayed
+from dataclasses import dataclass
 from torch import Tensor
-import torch
-
-
-from gymnasium import error, spaces
 
 
 @dataclass
@@ -113,16 +100,15 @@ class ReachPoseEnv(MujocoEnv):
         seed: Optional[int] = None,
         options: Optional[dict] = None,
     ):
-        obs, info = super().reset(seed=seed)
-        return obs, info
+        state, info = super().reset(seed=seed)
+        state = self.get_state()
+        return state, info
 
     def reset_model(self) -> np.ndarray:
         """
         Reset the state of the environment to an initial state.
         """
 
-        # self.data.qpos[:] = self.init_qpos
-        # self.data.qvel[:] = self.init_qvel
         self.set_state(self.init_qpos, self.init_qvel)
 
         return np.array(self.init_qpos, dtype=np.float32)
@@ -136,20 +122,11 @@ class ReachPoseEnv(MujocoEnv):
         return bounds
 
     def _initialize_simulation(self):
-        # sdfs = sorted()
+
         spec_mujoco = mujoco.MjSpec.from_file(self.fullpath)
         self.spec_mujoco = spec_mujoco
 
         self.add_body_key_points()
-
-        # for key, value in self.hand_final_full_pose.items():
-        #     try:
-        #         res = spec_mujoco.find_actuator(key)
-        #         if res is None:
-        #             raise Exception("Actuator not found")
-        #     except Exception as e:
-        #         print(f"Actuator {key} not found")
-        #         raise Exception("The final position and hand do not match")
 
         self.simultion_settings(spec_mujoco)
         self.add_graspable_object_spec(spec_mujoco)
@@ -223,8 +200,10 @@ class ReachPoseEnv(MujocoEnv):
         sorted_keys = sorted(obs_dict.keys())
         obs_list = []
         for key in sorted_keys:
-            if obs_dict[key] is np.ndarray:
+            if isinstance(obs_dict[key], np.ndarray):
                 obs_list.append(obs_dict[key])
+            elif isinstance(obs_dict[key], float):
+                obs_list.append([obs_dict[key]])
         obs_list = np.hstack(obs_list)
         return obs_list
 
@@ -244,7 +223,7 @@ class ReachPoseEnv(MujocoEnv):
             self.do_simulation(maped_action, self.frame_skip)
 
         full_dict_obs = self._get_full_obs()
-        reward, decomposed_reward = self.reward(full_dict_obs)
+        reward, decomposed_reward = self.reward(full_dict_obs, action)
         reduced_obs = self.get_obs_vector(full_dict_obs)
         if self.render_mode == "human":
             self.render()
@@ -255,9 +234,28 @@ class ReachPoseEnv(MujocoEnv):
         debug_dict["decomposed_reward"] = decomposed_reward
         return reduced_obs, reward, False, False, debug_dict
     
-    def get_state(self) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
-        state_tuple = (self.data.qpos, self.data.qvel)
-        return state_tuple
+    def set_state(self, qpos: NDArray[np.float64], qvel: Optional[NDArray[np.float64]] = None) -> None:
+        """
+        Set the state of the environment.
+        """
+
+        if qvel is None:
+            number_pos = len(self.data.qpos)
+            number_vel = len(self.data.qvel)
+            qp = qpos[:number_pos]
+            qv = qpos[number_pos:number_pos + number_vel]
+        else:
+            qp = qpos
+            qv = qvel
+    
+        self.data.qpos[:] = qp
+        self.data.qvel[:] = qv
+        mujoco.mj_kinematics(self.model, self.data)
+        mujoco.mj_forward(self.model, self.data)
+
+    def get_state(self) ->  NDArray[np.float64]:
+        state_vec = np.hstack([self.data.qpos, self.data.qvel])
+        return state_vec
 
     def step_mpc(self, state_vec, action): 
         number_pos = len(self.data.qpos)
@@ -274,6 +272,7 @@ class ReachPoseEnv(MujocoEnv):
         state = np.hstack((self.data.qpos, self.data.qvel))
         return state
 
+    
     def parralel_step_mpc(self, state_vector, action_vector):
         # res = Parallel(n_jobs=10, return_as="list")(
         # delayed(return_big_object)(i) for i in range(150))
@@ -315,7 +314,7 @@ class ReachPoseEnv(MujocoEnv):
         # Overide the action space to match the mujoco model
         return action
     
-    def reward(self, obs_dict: Dict[str, np.float32]) -> tuple[np.float32, dict]:
+    def reward(self, obs_dict: Dict[str, np.float32], acton: Optional[np.ndarray]=None) -> tuple[np.float32, dict]:
         weight_keypoints_error = 1.5
         weight_obj_error = 10
         weight_wirst_orient = 3

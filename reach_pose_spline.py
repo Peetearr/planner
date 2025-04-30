@@ -192,7 +192,7 @@ def run_mpc():
                     obj_speed_y = reacher.data.qvel[joint_id_y]
                     obj_speed_z = reacher.data.qvel[joint_id_z]
                     obj_speed = np.linalg.norm(np.array([obj_speed_x, obj_speed_y, obj_speed_z]))
-                    distance_key_points_array, obj_speed, anglediff = reacher._get_obs()
+                    distance_key_points_array, obj_speed, anglediff = reacher._get_full_obs()
                     print(f"Pose error: {np.sum(distance_key_points_array)}")
 
 
@@ -209,7 +209,7 @@ def run_mpc():
             obj_speed_y = reacher.data.qvel[joint_id_y]
             obj_speed_z = reacher.data.qvel[joint_id_z]
             obj_speed = np.linalg.norm(np.array([obj_speed_x, obj_speed_y, obj_speed_z]))
-            distance_key_points_array, obj_speed, anglediff = reacher._get_obs()
+            distance_key_points_array, obj_speed, anglediff = reacher._get_full_obs()
             print(f"Pose error: {np.sum(distance_key_points_array)}")
            
 
