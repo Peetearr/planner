@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 import mujoco
 import numpy as np
 from gymnasium.envs.mujoco.mujoco_env import MujocoEnv
@@ -13,6 +13,73 @@ from grasp_env_utils import (
 from load_complex_obj import add_graspable_body, add_meshes_from_folder
 from numpy.typing import NDArray
 from dataclasses import dataclass
+
+
+def revert_obs_vector(
+    flat_obs: NDArray,
+    keys: List[str],
+    value_info: List[Tuple[int, str, Union[int, Tuple[int, ...]]]],
+) -> Dict[str, Any]:
+    """
+    Revert the effect of get_obs_vector by reconstructing the original obs_dict from a flattened NDArray.
+    
+    Args:
+        flat_obs (NDArray): The flattened observation vector produced by get_obs_vector.
+        keys (List[str]): Sorted list of keys from the original obs_dict.
+        value_info (List[Tuple[int, str, Union[int, Tuple[int, ...]]]]): Metadata for each key, where each tuple contains:
+            - size (int): Number of elements in the flattened value.
+            - type (str): Either "float" (for single float) or "array" (for np.ndarray).
+            - shape (Union[int, Tuple[int, ...]]): Original shape of the value (int for float, tuple for array).
+    
+    Returns:
+        Dict[str, Any]: Reconstructed obs_dict with keys mapping to floats or np.ndarrays.
+    
+    Raises:
+        ValueError: If the flat_obs length does not match the sum of value sizes or if metadata is invalid.
+    """
+    # Validate inputs
+    if len(keys) != len(value_info):
+        raise ValueError("Number of keys must match number of value_info entries")
+    
+    # Calculate total expected size
+    total_size = sum(info[0] for info in value_info)
+    if flat_obs.size != total_size:
+        raise ValueError(
+            f"Flat observation size ({flat_obs.size}) does not match expected size ({total_size})"
+        )
+    
+    # Reconstruct the dictionary
+    obs_dict: Dict[str, Any] = {}
+    current_idx = 0
+    
+    for key, (size, val_type, shape) in zip(keys, value_info):
+        # Extract the segment for this key
+        segment = flat_obs[current_idx : current_idx + size]
+        
+        if val_type == "float":
+            # For floats, expect a single value
+            if size != 1:
+                raise ValueError(f"Float value for key '{key}' must have size 1, got {size}")
+            if not isinstance(shape, int) or shape != 1:
+                raise ValueError(f"Shape for float key '{key}' must be 1, got {shape}")
+            obs_dict[key] = float(segment[0])
+        
+        elif val_type == "array":
+            # For arrays, reshape to the original shape
+            if not isinstance(shape, tuple):
+                raise ValueError(f"Shape for array key '{key}' must be a tuple, got {shape}")
+            try:
+                obs_dict[key] = segment.reshape(shape)
+            except ValueError as e:
+                raise ValueError(f"Cannot reshape segment for key '{key}' to shape {shape}: {e}")
+        
+        else:
+            raise ValueError(f"Invalid type '{val_type}' for key '{key}', must be 'float' or 'array'")
+        
+        current_idx += size
+    
+    return obs_dict
+
 
 
 @dataclass
@@ -52,6 +119,7 @@ class ReachPoseEnv(MujocoEnv):
     def __init__(
         self,
         config: ReachPoseEnvConfig,
+        reward_dict: Optional[dict] = None,
         render_mode: Optional[str] = None,
         width=640,
         height=480,
@@ -68,7 +136,22 @@ class ReachPoseEnv(MujocoEnv):
         self.height = height
         self.key_pose_dict = key_pose_dict
         self.kinematics_debug = False
-
+        if reward_dict is None:
+            self.reward_dict = {
+                "distance_key_points": 1,
+                "obj_displacement": 1,
+                "diff_orient": 1,
+            }
+        else:
+            self.reward_dict = reward_dict
+        self.tip_body_names = [
+            "robot0:ffdistal",
+            "robot0:mfdistal",
+            "robot0:rfdistal",
+            "robot0:lfdistal",
+            "robot0:thdistal",
+        ]
+        self.palm_name = "robot0:palm"
         self.action_space = self.init_action_space(config.model_path_hand)
 
         super().__init__(
@@ -192,19 +275,22 @@ class ReachPoseEnv(MujocoEnv):
             type=mujoco.mjtJoint.mjJNT_HINGE,
         )
 
-    def get_obs_vector(self, obs_dict: Dict[str, Any]) -> NDArray:
-        """
-        Get the observation of the environment.
-        """
+    def get_obs_vector(self, obs_dict: Dict[str, Any]) -> tuple[NDArray, List[Tuple[str, int, str, Union[int, Tuple[int, ...]]]]]:
         sorted_keys = sorted(obs_dict.keys())
         obs_list = []
+        metadata = []
+        
         for key in sorted_keys:
-            if isinstance(obs_dict[key], np.ndarray):
-                obs_list.append(obs_dict[key])
-            elif isinstance(obs_dict[key], float):
-                obs_list.append([obs_dict[key]])
-        obs_list = np.hstack(obs_list)
-        return obs_list
+            value = obs_dict[key]
+            if isinstance(value, np.ndarray):
+                flat_value = value.flatten()
+                obs_list.append(flat_value)
+                metadata.append((key, flat_value.size, "array", value.shape))
+            elif isinstance(value, float):
+                obs_list.append([value])
+                metadata.append((key, 1, "float", 1))
+        
+        return np.hstack(obs_list), metadata
 
     def step(self, action: NDArray[np.float32]) -> tuple[NDArray, np.float32, bool, bool, dict[str, Any]]: # type: ignore
         
@@ -223,7 +309,7 @@ class ReachPoseEnv(MujocoEnv):
 
         full_dict_obs = self._get_full_obs()
         reward, decomposed_reward = self.reward(full_dict_obs, action)
-        reduced_obs = self.get_obs_vector(full_dict_obs)
+        reduced_obs, metadata = self.get_obs_vector(full_dict_obs)
         if self.render_mode == "human":
             self.render()
         
@@ -276,13 +362,13 @@ class ReachPoseEnv(MujocoEnv):
         return action
     
     def reward(self, obs_dict: Dict[str, np.float32], acton: Optional[np.ndarray]=None) -> tuple[np.float32, dict]:
-        weight_keypoints_error = 1.5
-        weight_obj_error = 10
-        weight_wirst_orient = 3
+        weight_keypoints_error = self.reward_dict["distance_key_points"]
+        weight_obj_error = self.reward_dict["obj_displacement"]
+        weight_wirst_orient = self.reward_dict["diff_orient"]
         
-        mean_error_dist = np.sum(obs_dict["distance_key_points_array"])
+        sum_error_dist = np.sum(obs_dict["distance_key_points_array"])
 
-        r1 = -mean_error_dist * weight_keypoints_error
+        r1 = -sum_error_dist * weight_keypoints_error
         r2 = -obs_dict["object_error"] * weight_obj_error
         r3 = -obs_dict["anglediff"] * weight_wirst_orient
         
@@ -305,6 +391,23 @@ class ReachPoseEnv(MujocoEnv):
             key: np.linalg.norm(np.array(key_bodies_dict_pose[key]) - np.array(self.key_pose_dict[key]))
             for key in self.key_pose_dict.keys()
         }
+
+        tips_pose = np.zeros((len(self.tip_body_names), 3))
+        for i, b_name in enumerate(self.tip_body_names):
+            body_id = self.data.model.body(name=b_name).id
+            body_centr_pose = self.data.xipos[body_id]
+            tips_pose[i] = body_centr_pose
+
+        body_palm_id = self.data.model.body(name=self.palm_name).id
+        palm_pose = self.data.xipos[body_palm_id]
+        act_joint_pose = self.data.actuator_length
+         
+        body_grasp_id = self.data.model.body(name="graspable_object").id
+        object_pose = self.data.xipos[body_grasp_id]
+        object_quat = self.data.xquat[body_grasp_id]
+        current_control = self.data.ctrl
+
+
         distance_key_points_array = np.array(list(distances.values()))
         graspable_obj_name = "graspable_object"
         body_id = self.data.model.body(name=graspable_obj_name).id
@@ -340,6 +443,14 @@ class ReachPoseEnv(MujocoEnv):
             "obj_speed": obj_speed,
             "anglediff": anglediff,
             "object_error": object_erorr,
+            "tips_pose": tips_pose,
+            "palm_pose": palm_pose,
+            "act_joint_pose": act_joint_pose,
+            "object_pose": object_pose,
+            "object_quat": object_quat,
+            "current_control": current_control,
+
+
         }
 
 

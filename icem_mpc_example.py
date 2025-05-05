@@ -96,10 +96,15 @@ def cost_traj_mpc_tensor(env: ReachPoseEnv, state_vec: Tensor, action_vec: Tenso
 
 
 def run_mpc():
-    POSE_NUM, obj_name, key_body_final_pos, config, final_act_pose_sh_hand = prepare_env_config()
+    POSE_NUM, obj_name, key_body_final_pos, config, final_hand_joint_pose = prepare_env_config()
 
-    reacher = ReachPoseEnv(config, key_pose_dict=key_body_final_pos, render_mode="human")
-    reacher_dynamic = ReachPoseEnv(config, key_pose_dict=key_body_final_pos)
+    reward_dict = {
+        "distance_key_points": 1.5,
+        "obj_displacement": 10.0,
+        "diff_orient": 3.0,
+    }
+    reacher = ReachPoseEnv(config, key_pose_dict=key_body_final_pos, render_mode="human", reward_dict=reward_dict)
+    reacher_dynamic = ReachPoseEnv(config, key_pose_dict=key_body_final_pos, reward_dict=reward_dict)
 
     vector_dynamics = partial(dynamics_mpc_wrapper_tensor, reacher_dynamic)
     vector_cost = partial(cost_traj_mpc_tensor, reacher_dynamic)
