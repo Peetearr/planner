@@ -13,7 +13,6 @@ from grasp_env_utils import (
 from load_complex_obj import add_graspable_body, add_meshes_from_folder
 from numpy.typing import NDArray
 from dataclasses import dataclass
-from torch import Tensor
 
 
 @dataclass

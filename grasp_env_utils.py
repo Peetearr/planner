@@ -1,5 +1,4 @@
 from copy import deepcopy
-import gymnasium as gym
 
 # import gymnasium_robotics
 import time
@@ -9,7 +8,6 @@ import numpy as np
 from load_complex_obj import add_graspable_body, add_meshes_from_folder
 import transforms3d.euler as euler
 from transforms3d import affines
-from transforms3d import quaternions
 from numpy.typing import NDArray
 
 Z_QUAT_0 = euler.euler2quat(np.deg2rad(5), np.deg2rad(0), np.deg2rad(10))

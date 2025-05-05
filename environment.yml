@@ -1,4 +1,4 @@
-name: cem_mpc
+name: cem_mpc2
 channels:
   - conda-forge
   - defaults
@@ -9,9 +9,9 @@ dependencies:
   - mujoco=3.2.7
   - mypy
   - pip:
-    - dm_control
-    - dm_env
     - gymnasium
     - gymnasium-robotics
-    - pytorch-icem
+    - transforms3d
+    - trimesh
+    - git+https://github.com/BE2R-Lab-RND-AI-Grasping/pytorch_icem.git
   
