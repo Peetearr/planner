@@ -12,7 +12,7 @@ from grasp_env_utils import (
 
 from load_complex_obj import add_graspable_body, add_meshes_from_folder
 from numpy.typing import NDArray
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 def revert_obs_vector(
@@ -22,7 +22,7 @@ def revert_obs_vector(
 ) -> Dict[str, Any]:
     """
     Revert the effect of get_obs_vector by reconstructing the original obs_dict from a flattened NDArray.
-    
+
     Args:
         flat_obs (NDArray): The flattened observation vector produced by get_obs_vector.
         keys (List[str]): Sorted list of keys from the original obs_dict.
@@ -30,32 +30,30 @@ def revert_obs_vector(
             - size (int): Number of elements in the flattened value.
             - type (str): Either "float" (for single float) or "array" (for np.ndarray).
             - shape (Union[int, Tuple[int, ...]]): Original shape of the value (int for float, tuple for array).
-    
+
     Returns:
         Dict[str, Any]: Reconstructed obs_dict with keys mapping to floats or np.ndarrays.
-    
+
     Raises:
         ValueError: If the flat_obs length does not match the sum of value sizes or if metadata is invalid.
     """
     # Validate inputs
     if len(keys) != len(value_info):
         raise ValueError("Number of keys must match number of value_info entries")
-    
+
     # Calculate total expected size
     total_size = sum(info[0] for info in value_info)
     if flat_obs.size != total_size:
-        raise ValueError(
-            f"Flat observation size ({flat_obs.size}) does not match expected size ({total_size})"
-        )
-    
+        raise ValueError(f"Flat observation size ({flat_obs.size}) does not match expected size ({total_size})")
+
     # Reconstruct the dictionary
     obs_dict: Dict[str, Any] = {}
     current_idx = 0
-    
+
     for key, (size, val_type, shape) in zip(keys, value_info):
         # Extract the segment for this key
         segment = flat_obs[current_idx : current_idx + size]
-        
+
         if val_type == "float":
             # For floats, expect a single value
             if size != 1:
@@ -63,7 +61,7 @@ def revert_obs_vector(
             if not isinstance(shape, int) or shape != 1:
                 raise ValueError(f"Shape for float key '{key}' must be 1, got {shape}")
             obs_dict[key] = float(segment[0])
-        
+
         elif val_type == "array":
             # For arrays, reshape to the original shape
             if not isinstance(shape, tuple):
@@ -72,14 +70,13 @@ def revert_obs_vector(
                 obs_dict[key] = segment.reshape(shape)
             except ValueError as e:
                 raise ValueError(f"Cannot reshape segment for key '{key}' to shape {shape}: {e}")
-        
+
         else:
             raise ValueError(f"Invalid type '{val_type}' for key '{key}', must be 'float' or 'array'")
-        
-        current_idx += size
-    
-    return obs_dict
 
+        current_idx += size
+
+    return obs_dict
 
 
 @dataclass
@@ -91,7 +88,7 @@ class ReachPoseEnvConfig:
     obj_start_quat: np.ndarray
     obj_scale: float = 1.0
     frame_skip: int = 5
-    hand_starting_pose: Optional[Dict[str, float]] = None
+    hand_starting_pose: Dict[str, float] = field(default_factory=dict)
 
 
 def set_position(mj_data: mujoco.MjData, qpos: dict[str, float], maping: dict[str, str] = None):
@@ -131,6 +128,8 @@ class ReachPoseEnv(MujocoEnv):
         self.obj_start_quat = config.obj_start_quat
         self.obj_mesh_path = config.obj_mesh_path
         self.hand_final_full_pose = config.hand_final_full_pose
+        if config.hand_starting_pose is not None:
+            self.hand_starting_pose = config.hand_starting_pose
         self.render_mode = render_mode
         self.width = width
         self.height = height
@@ -159,10 +158,10 @@ class ReachPoseEnv(MujocoEnv):
             frame_skip=config.frame_skip,
             observation_space=None,
             render_mode=render_mode,
+            width=width,
+            height=height,
             **kwargs,
         )
-
-        self.reset()
 
     def add_body_key_points(self):
         for pose_name, pose in self.key_pose_dict.items():
@@ -216,9 +215,16 @@ class ReachPoseEnv(MujocoEnv):
         composite_model = spec_mujoco.compile()
         composite_data = mujoco.MjData(composite_model)
 
+
+        if self.hand_starting_pose is not None:
+            set_position_kinematics(composite_data, self.hand_starting_pose)
+        #self.s
         composite_model.vis.global_.offwidth = self.width
         composite_model.vis.global_.offheight = self.height
-
+        
+        self.init_qpos = composite_data.qpos.ravel().copy()
+        self.init_qvel = composite_data.qvel.ravel().copy()
+        
         return composite_model, composite_data
 
     def simultion_settings(self, spec: mujoco.MjSpec):
@@ -298,12 +304,8 @@ class ReachPoseEnv(MujocoEnv):
         maped_action = self.convert_action_to_model(truncated_action)
       
         if self.kinematics_debug:
-            copied_fin_pose = deepcopy(self.hand_final_full_pose)
-            mujoco.mj_kinematics(self.model, self.data)
-            
-            for key in self.hand_final_full_pose.keys():
-                copied_fin_pose[key] += np.random.normal(0, 0.000001)
-            set_position_kinematics(self.data, copied_fin_pose)
+            self.do_simulation(maped_action, self.frame_skip)
+            set_position_kinematics(self.data, self.hand_starting_pose)
         else:
             self.do_simulation(maped_action, self.frame_skip)
 

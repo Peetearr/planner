@@ -1,17 +1,20 @@
 import time
-from config_crearor import prepare_env_config
+from config_crearor import get_tabale_top_start_pos, prepare_env_config
 from reach_pose_env import ReachPoseEnv
+import numpy as np
 
 
 def run_env():
     POSE_NUM, obj_name, key_body_final_pos, config, final_act_pose_sh_hand = prepare_env_config()
+
+    start_poses, x_pose, y_pose = get_tabale_top_start_pos()
+
     env = ReachPoseEnv(config, key_pose_dict=key_body_final_pos, render_mode="human")
 
-    state, info = env.reset()
-    start_state = env.set_state(state[0], state[1])
     for _ in range(1000):
         time.sleep(0.01)
-        reduced_obs, reward, _, _, debug_dict = env.step(env.action_space.sample())
+
+        reduced_obs, reward, _, _, debug_dict = env.step(np.zeros(len(env.action_space.sample())))
         print(reward)
 
 

@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 import transforms3d.euler as euler
 from grasp_env_utils import (
@@ -18,9 +19,9 @@ def prepare_env_config(frame_skip=4, pose_num=10, obj_name="sem-Plate-9969f6178d
     obj_quat_good = euler.euler2quat(np.deg2rad(90), np.deg2rad(180), np.deg2rad(180))
     obj_pos_good = [0.0, 0, 0.4]
 
-    obj_start_pos = [0.0, 0, -0.5]
+    obj_start_pos = [0.0, 0, -0.3]
 
-    obj_start_quat = euler.euler2quat(np.deg2rad(20), np.deg2rad(90), np.deg2rad(180))
+    obj_start_quat = euler.euler2quat(np.deg2rad(0), np.deg2rad(0), np.deg2rad(0))
 
     core_mug = np.load(pos_path_name, allow_pickle=True)
     qpos_hand = core_mug[pose_num]["qpos"]
@@ -59,6 +60,15 @@ def prepare_env_config(frame_skip=4, pose_num=10, obj_name="sem-Plate-9969f6178d
     final_act_pose_sh_hand = convert_pose_dexgraspnet_to_mujoco(qpos_hand, default_mapping)
     key_body_final_pos = get_final_bodies_pose(qpos_hand, model_path_hand)
 
+    init_wirst_pose = {
+        "WRJRx": np.deg2rad(90),
+        "WRJRy": 0,
+        "WRJRz": 0,
+        "WRJTx": 0,
+        "WRJTy": 0,
+        "WRJTz": 0.2,
+    }
+
     config = ReachPoseEnvConfig(
         hand_final_full_pose=qpos_hand,
         model_path_hand=model_path_hand,
@@ -67,6 +77,30 @@ def prepare_env_config(frame_skip=4, pose_num=10, obj_name="sem-Plate-9969f6178d
         obj_start_quat=obj_start_quat,
         obj_scale=core_mug[pose_num]["scale"] * 0.9,
         frame_skip=frame_skip,
+        hand_starting_pose=init_wirst_pose,
     )
 
     return pose_num, obj_name, key_body_final_pos, config, final_act_pose_sh_hand
+
+
+def get_tabale_top_start_pos():
+    posible_x = np.linspace(-0.3, 0.3, 5)
+    posible_y = np.linspace(-0.3, 0.3, 5)
+    xy_postions = np.meshgrid(posible_x, posible_y)
+
+    init_wirst_pose = {
+        "WRJRx": np.deg2rad(90),
+        "WRJRy": 0,
+        "WRJRz": 0,
+        "WRJTx": 0,
+        "WRJTy": 0,
+        "WRJTz": 0.1,
+    }
+    pose_list = []
+    for x, y in zip(xy_postions[0].flatten(), xy_postions[1].flatten()):
+        init_wirst_pose["WRJTx"] = x
+        init_wirst_pose["WRJTy"] = y
+        pos = deepcopy(init_wirst_pose)
+        pose_list.append(pos)
+    return pose_list, xy_postions[0].flatten(), xy_postions[1].flatten()
+ 
