@@ -6,12 +6,12 @@ dependencies:
   - python=3.9
   - numpy>=1.21.0
   - matplotlib>=3.5.0
-  - mujoco=3.2.7
   - mypy
   - pip:
     - gymnasium
     - gymnasium-robotics
     - transforms3d
     - trimesh
+    - mujoco=3.2.7
     - git+https://github.com/BE2R-Lab-RND-AI-Grasping/pytorch_icem.git
   
