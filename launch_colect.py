@@ -1,15 +1,16 @@
 from dataclasses import dataclass
+import itertools
 import os
 import time
 from typing import Optional
 import mujoco
 import numpy as np
-from config_crearor import prepare_env_config
+from config_crearor import get_tabale_top_start_pos, prepare_env_config
 from pytorch_icem import iCEM
 from torch import Tensor
 
 from icem_mpc_example import trajectory_player, cost_traj_mpc_tensor, dynamics_mpc_wrapper_tensor
-from reach_pose_env import ReachPoseEnv
+from reach_pose_env import ReachPoseEnv, ReachPoseEnvConfig
 import gymnasium as gym
 from functools import partial
 import matplotlib.pyplot as plt
@@ -38,15 +39,27 @@ def run_icem(
     POSE_NUM, obj_name, key_body_final_pos, config, final_hand_joint_pose = prepare_env_config(
         obj_name=obj_name, pose_num=pose_num, frame_skip=frame_skip
     )
+    action_seq, costs_seq, full_observations, ellites_trj = run_icem_from_config(
+        reward_dict, confi_icem, render_mode, key_body_final_pos, config
+    )
+
+    return action_seq, costs_seq, ellites_trj, full_observations
+
+
+def run_icem_from_config(
+    reward_dict: dict[str, float],
+    confi_icem: ConfigICEM,
+    render_mode: str,
+    key_body_final_pos: dict[str, np.ndarray],
+    config: ReachPoseEnvConfig,
+):
     reacher = ReachPoseEnv(
         config,
         key_pose_dict=key_body_final_pos,
         render_mode=render_mode,
         reward_dict=reward_dict,
     )
-    reacher_dynamic = ReachPoseEnv(
-        config, key_pose_dict=key_body_final_pos, reward_dict=reward_dict
-    )
+    reacher_dynamic = ReachPoseEnv(config, key_pose_dict=key_body_final_pos, reward_dict=reward_dict)
 
     vector_dynamics = partial(dynamics_mpc_wrapper_tensor, reacher_dynamic)
     vector_cost = partial(cost_traj_mpc_tensor, reacher_dynamic)
@@ -113,8 +126,28 @@ def run_icem(
 
     if reacher.render_mode == "human":
         reacher.close()
+    return action_seq, costs_seq, full_observations, ellites_trj
 
-    return action_seq, costs_seq, ellites_trj, full_observations
+
+def create_configs_for_env(obj_path: str):
+    pose_nums = range(10)
+    start_poses, x_pose, y_pose = get_tabale_top_start_pos()
+    start_p_num = itertools.product(start_poses, pose_nums)
+    env_config_list = []
+    for start_pose_hand_i, pose_num_i in start_p_num:
+        pose_num, obj_name, key_body_final_pos, config, final_act_pose_sh_hand = prepare_env_config(
+            pose_num=pose_num_i, obj_name=obj_path
+        )
+        config.hand_starting_pose = start_pose_hand_i
+        conif_dict = {
+            "hand_starting_pose": start_pose_hand_i,
+            "obj_name": obj_name,
+            "pose_num": pose_num_i,
+            "key_body_final_pos": key_body_final_pos,
+            "final_act_pose_sh_hand": final_act_pose_sh_hand,
+        }
+        env_config_list.append((conif_dict))
+    return env_config_list
 
 
 if __name__ == "__main__":
@@ -125,6 +158,11 @@ if __name__ == "__main__":
     }
     config_icem = ConfigICEM()
     obj_name = "sem-Plate-9969f6178dcd67101c75d484f9069623"
-    pose_num = 5
-                                                                                                                                                                                                        
-    action_seq, costs_seq, ellites_trj, full_observations = run_icem(obj_name, pose_num, reward_dict, config_icem, render_mode="human")
+    conf_list = create_configs_for_env(obj_name)
+    print(conf_list)
+    # action_seq, costs_seq, ellites_trj, full_observations = run_icem(
+    #     obj_name, pose_num, reward_dict, config_icem, render_mode="human"
+    # )
+    config_11 = conf_list[11]
+
+    run_icem(obj_name, config_11["pose_num"], reward_dict, config_icem, render_mode="human")
