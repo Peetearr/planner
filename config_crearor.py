@@ -84,8 +84,11 @@ def prepare_env_config(frame_skip=4, pose_num=10, obj_name="sem-Plate-9969f6178d
 
 
 def get_tabale_top_start_pos():
-    posible_x = np.linspace(-0.3, 0.3, 5)
-    posible_y = np.linspace(-0.3, 0.3, 5)
+    offset_x = 0
+    offset_y = 0.6
+    square_size = 0.3
+    posible_x = np.linspace(-square_size + offset_x  , square_size + offset_x, 5)
+    posible_y = np.linspace(-square_size + offset_y, square_size + offset_y, 5)
     xy_postions = np.meshgrid(posible_x, posible_y)
 
     init_wirst_pose = {
@@ -94,7 +97,7 @@ def get_tabale_top_start_pos():
         "WRJRz": 0,
         "WRJTx": 0,
         "WRJTy": 0,
-        "WRJTz": 0.1,
+        "WRJTz": 0,
     }
     pose_list = []
     for x, y in zip(xy_postions[0].flatten(), xy_postions[1].flatten()):

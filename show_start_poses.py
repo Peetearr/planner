@@ -25,7 +25,7 @@ def show_start_poses():
             height=1200,
         )
         env.kinematics_debug = True
-        for _ in range(1000):
+        for _ in range(100):
             reduced_obs, reward, _, _, debug_dict = env.step(np.zeros(len(env.action_space.sample())))
             time.sleep(0.005)
 

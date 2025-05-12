@@ -6,10 +6,11 @@ from config_crearor import prepare_env_config
 from pytorch_icem import iCEM
 from torch import Tensor
 
-from reach_pose_env import ReachPoseEnv
+from reach_pose_env import ReachPoseEnv, revert_obs_vector
 import gymnasium as gym
 from functools import partial
 import matplotlib.pyplot as plt
+import re
 
 def trajectory_player(reacher_pose_env: ReachPoseEnv, action_seq):
     viewer = mujoco.viewer.launch_passive(reacher_pose_env.model, reacher_pose_env.data)
@@ -38,7 +39,7 @@ def trajectory_player(reacher_pose_env: ReachPoseEnv, action_seq):
             reacher_pose_env.step(0)
         else:
             mujoco.mj_step(reacher_pose_env.model, reacher_pose_env.data)
-            
+
     plt.figure()
 
     plt.plot(dist_reward, label="r1")
@@ -122,10 +123,10 @@ def run_mpc():
         sigma=Tensor(initial_sigma),
         nx=start_state.shape[0],
         nu=nu,
-        warmup_iters=25,
-        online_iters=25,
-        num_samples=250,
-        num_elites=20,
+        warmup_iters=4,
+        online_iters=4,
+        num_samples=4,
+        num_elites=2,
         elites_keep_fraction=0.5,
         horizon=7,
         device="cpu",
@@ -141,19 +142,24 @@ def run_mpc():
     if not os.path.exists(obj_name + str(POSE_NUM) + ".npz"):
 
         MPC_STEPS = 40
-        action_seq = []
-        costs_seq = []
+        action_seq = np.zeros((MPC_STEPS, nu), dtype=np.float32)
+        costs_seq = np.zeros(MPC_STEPS)
+        full_observations = []
         obs_mpc_state = start_state
+
+        number_of_trj = int(ctrl.keep_fraction * ctrl.K)
+        ellites_trj = np.zeros((number_of_trj, MPC_STEPS, nu), dtype=np.float32)
 
         for i in range(MPC_STEPS):
             action_i = ctrl.command(obs_mpc_state, shift_nominal_trajectory=False)
             action_np = action_i.cpu().numpy()
             reduced_obs, reward, _, _, debug_dict = reacher.step(action_np)
             obs_mpc_state = reacher.get_state()
-
-            costs_seq.append(reward)
-            action_seq.append(action_np)
-
+        
+            costs_seq[i] = reward
+            action_seq[i] = action_np
+            ellites_trj[:, i, :] = ctrl.kept_elites[:, 0, :].to("cpu").numpy()
+            full_observations.append(debug_dict["full_obs"])
             print(f"Cost : {reward}")
             print(f"Step : {i}")
             mean_normilize = ctrl.mean[0]
@@ -165,17 +171,18 @@ def run_mpc():
             ctrl.shift()
         reacher.close()
         print("Finish traj generate")
-        np.savez(obj_name + str(POSE_NUM), action_seq)
-        np.savez(obj_name + str("_cost_") + str(POSE_NUM), costs_seq)
+        # Convert all values inside reacher.hand_starting_pose to Python float with round 3
+        hand_starting_pose_name = {k: round(float(v), 3) for k, v in reacher.hand_starting_pose.items()}
+        filename = f"{obj_name}_POSENUM_{POSE_NUM}_{re.sub(r'[^a-zA-Z0-9]', '_', str(hand_starting_pose_name.values()))}.npz" 
+        np.savez(filename, action_seq = action_seq, elites_action = ellites_trj, costs_seq = costs_seq, full_observations = full_observations)
+        
+        #np.savez(obj_name + str("_cost_") + str(POSE_NUM), costs_seq)
     else:
         print("File traj already exists")
         action_seq = np.load(obj_name + str(POSE_NUM) + ".npz")["arr_0"]
     obs_mpc_state = reacher.reset()
 
-
     trajectory_player(reacher, action_seq)
-
-
 
 
 if __name__ == "__main__":

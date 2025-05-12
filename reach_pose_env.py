@@ -319,6 +319,8 @@ class ReachPoseEnv(MujocoEnv):
         debug_dict["state"] = self.get_state()
         debug_dict["full_obs"] = full_dict_obs
         debug_dict["decomposed_reward"] = decomposed_reward
+        debug_dict["obs_metadata"] = metadata
+        
         return reduced_obs, reward, False, False, debug_dict
     
     def set_state(self, qpos: NDArray[np.float64], qvel: Optional[NDArray[np.float64]] = None) -> None:
