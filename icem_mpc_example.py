@@ -23,7 +23,7 @@ def trajectory_player(reacher_pose_env: ReachPoseEnv, action_seq):
         for i in range(reacher_pose_env.frame_skip):
             mujoco.mj_step(reacher_pose_env.model, reacher_pose_env.data)
             for i in range(50):
-                time.sleep(0.005)
+                time.sleep(0.002)
                 viewer.sync()
             full_obs = reacher_pose_env._get_full_obs()
             rew, decompose = reacher_pose_env.reward(full_obs, action_i)
@@ -101,8 +101,9 @@ def run_mpc():
 
     reward_dict = {
         "distance_key_points": 1.5,
-        "obj_displacement": 10.0,
-        "diff_orient": 3.0,
+        "obj_displacement": 2.0,
+        "diff_orient": 1.0,
+        "obj_speed": 1.0,
     }
     reacher = ReachPoseEnv(config, key_pose_dict=key_body_final_pos, render_mode="human", reward_dict=reward_dict)
     reacher_dynamic = ReachPoseEnv(config, key_pose_dict=key_body_final_pos, reward_dict=reward_dict)
@@ -123,14 +124,14 @@ def run_mpc():
         sigma=Tensor(initial_sigma),
         nx=start_state.shape[0],
         nu=nu,
-        warmup_iters=4,
-        online_iters=4,
-        num_samples=4,
-        num_elites=2,
-        elites_keep_fraction=0.5,
-        horizon=7,
+        warmup_iters=40,
+        online_iters=40,
+        num_samples=500,
+        num_elites=60,
+        elites_keep_fraction=0.1,
+        horizon=4,
         device="cpu",
-        alpha=0.005,
+        alpha=0.007,
         noise_beta=2,
         low_bound_action=reacher.action_space.low,
         high_bound_action=reacher.action_space.high,
@@ -138,10 +139,12 @@ def run_mpc():
 
     ctrl.mean = Tensor(initial_mean)
     ctrl.sigma = Tensor(initial_sigma)
-
-    if not os.path.exists(obj_name + str(POSE_NUM) + ".npz"):
-
-        MPC_STEPS = 40
+    # Convert all values inside reacher.hand_starting_pose to Python float with round 3
+    hand_starting_pose_name = {k: round(float(v), 3) for k, v in reacher.hand_starting_pose.items()}
+    filename = f"{obj_name}_POSENUM_{POSE_NUM}_{re.sub(r'[^a-zA-Z0-9]', '_', str(hand_starting_pose_name.values()))}.npz" 
+    if not os.path.exists(filename):
+        start_time = time.time()
+        MPC_STEPS = 17
         action_seq = np.zeros((MPC_STEPS, nu), dtype=np.float32)
         costs_seq = np.zeros(MPC_STEPS)
         full_observations = []
@@ -171,15 +174,15 @@ def run_mpc():
             ctrl.shift()
         reacher.close()
         print("Finish traj generate")
-        # Convert all values inside reacher.hand_starting_pose to Python float with round 3
-        hand_starting_pose_name = {k: round(float(v), 3) for k, v in reacher.hand_starting_pose.items()}
-        filename = f"{obj_name}_POSENUM_{POSE_NUM}_{re.sub(r'[^a-zA-Z0-9]', '_', str(hand_starting_pose_name.values()))}.npz" 
+        print("Time elapsed: ", time.time() - start_time)
+
+         
         np.savez(filename, action_seq = action_seq, elites_action = ellites_trj, costs_seq = costs_seq, full_observations = full_observations)
         
         #np.savez(obj_name + str("_cost_") + str(POSE_NUM), costs_seq)
     else:
         print("File traj already exists")
-        action_seq = np.load(obj_name + str(POSE_NUM) + ".npz")["arr_0"]
+        action_seq = np.load(filename)["action_seq"]
     obs_mpc_state = reacher.reset()
 
     trajectory_player(reacher, action_seq)
