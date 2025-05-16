@@ -124,14 +124,14 @@ def run_mpc():
         sigma=Tensor(initial_sigma),
         nx=start_state.shape[0],
         nu=nu,
-        warmup_iters=40,
-        online_iters=40,
-        num_samples=500,
-        num_elites=60,
+        warmup_iters=100,
+        online_iters=50,
+        num_samples=200,
+        num_elites=20,
         elites_keep_fraction=0.1,
-        horizon=4,
+        horizon=7,
         device="cpu",
-        alpha=0.007,
+        alpha=0.003,
         noise_beta=2,
         low_bound_action=reacher.action_space.low,
         high_bound_action=reacher.action_space.high,
@@ -139,12 +139,13 @@ def run_mpc():
 
     ctrl.mean = Tensor(initial_mean)
     ctrl.sigma = Tensor(initial_sigma)
+    is_reseted = False
     # Convert all values inside reacher.hand_starting_pose to Python float with round 3
     hand_starting_pose_name = {k: round(float(v), 3) for k, v in reacher.hand_starting_pose.items()}
     filename = f"{obj_name}_POSENUM_{POSE_NUM}_{re.sub(r'[^a-zA-Z0-9]', '_', str(hand_starting_pose_name.values()))}.npz" 
     if not os.path.exists(filename):
         start_time = time.time()
-        MPC_STEPS = 17
+        MPC_STEPS = 25
         action_seq = np.zeros((MPC_STEPS, nu), dtype=np.float32)
         costs_seq = np.zeros(MPC_STEPS)
         full_observations = []
@@ -161,7 +162,7 @@ def run_mpc():
         
             costs_seq[i] = reward
             action_seq[i] = action_np
-            ellites_trj[:, i, :] = ctrl.kept_elites[:, 0, :].to("cpu").numpy()
+            ellites_trj[:, i, :] = ctrl.kept_elites[:number_of_trj, 0, :].to("cpu").numpy()
             full_observations.append(debug_dict["full_obs"])
             print(f"Cost : {reward}")
             print(f"Step : {i}")
@@ -172,6 +173,13 @@ def run_mpc():
             print(f"STD[0] {np.array(std_normilize).round(3)}")
 
             ctrl.shift()
+            if reward > -0.5 and not is_reseted:
+                ctrl.reset()
+                print("Reset")
+                ctrl.N = ctrl.N * 2
+                ctrl.K = ctrl.K * 2
+                is_reseted = True
+                ctrl.alpha = 0.001
         reacher.close()
         print("Finish traj generate")
         print("Time elapsed: ", time.time() - start_time)

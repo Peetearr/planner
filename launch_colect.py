@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+from hashlib import sha256
 import itertools
 import os
+import re
 import time
 from typing import Optional
 import mujoco
@@ -13,6 +15,7 @@ from icem_mpc_example import trajectory_player, cost_traj_mpc_tensor, dynamics_m
 from reach_pose_env import ReachPoseEnv, ReachPoseEnvConfig
 import gymnasium as gym
 from functools import partial
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 
@@ -40,7 +43,11 @@ def run_icem(
         obj_name=obj_name, pose_num=pose_num, frame_skip=frame_skip
     )
     action_seq, costs_seq, full_observations, ellites_trj = run_icem_from_config(
-        reward_dict, confi_icem, render_mode, key_body_final_pos, config
+        reward_dict,
+        confi_icem,
+        key_body_final_pos,
+        config,
+        render_mode,
     )
 
     return action_seq, costs_seq, ellites_trj, full_observations
@@ -49,9 +56,9 @@ def run_icem(
 def run_icem_from_config(
     reward_dict: dict[str, float],
     confi_icem: ConfigICEM,
-    render_mode: str,
     key_body_final_pos: dict[str, np.ndarray],
     config: ReachPoseEnvConfig,
+    render_mode: Optional[str] = None,
 ):
     reacher = ReachPoseEnv(
         config,
@@ -145,9 +152,25 @@ def create_configs_for_env(obj_path: str):
             "pose_num": pose_num_i,
             "key_body_final_pos": key_body_final_pos,
             "final_act_pose_sh_hand": final_act_pose_sh_hand,
+            "config": config,
         }
         env_config_list.append((conif_dict))
     return env_config_list
+
+
+def create_file_name_based_position(
+    obj_name: str, pose_num: int, hand_starting_pose: dict[str, float], folder="experts_traj"
+):
+    hand_starting_pose_name = {k: round(float(v), 3) for k, v in hand_starting_pose.items()}
+    start_pos_name = re.sub(r"[^a-zA-Z0-9]", "_", str(hand_starting_pose_name.values()))
+    subfolder = os.path.join(folder, obj_name)
+    if not os.path.exists(subfolder):
+        os.makedirs(subfolder)
+    filename = f"{obj_name}_POSENUM_{pose_num}_{start_pos_name}.npz"
+    filename = os.path.join(subfolder, filename)
+    if os.path.exists(filename):
+        print("File already exists")
+    return filename
 
 
 if __name__ == "__main__":
@@ -155,14 +178,62 @@ if __name__ == "__main__":
         "distance_key_points": 1.5,
         "obj_displacement": 10.0,
         "diff_orient": 3.0,
+        "obj_speed": 1,
     }
+    # For testing
     config_icem = ConfigICEM()
-    obj_name = "sem-Plate-9969f6178dcd67101c75d484f9069623"
-    conf_list = create_configs_for_env(obj_name)
-    print(conf_list)
-    # action_seq, costs_seq, ellites_trj, full_observations = run_icem(
-    #     obj_name, pose_num, reward_dict, config_icem, render_mode="human"
-    # )
-    config_11 = conf_list[11]
+    config_icem.horizon = 3
+    config_icem.mpc_steps = 3
+    config_icem.warmup_iters = 4
+    config_icem.online_iters = 4
+    config_icem.num_samples = 5
+    config_icem.num_elites = 2
 
-    run_icem(obj_name, config_11["pose_num"], reward_dict, config_icem, render_mode="human")
+    obj_name = "sem-Plate-9969f6178dcd67101c75d484f9069623"
+    configs_and_info = create_configs_for_env(obj_name)
+    # For testing
+    file_name = create_file_name_based_position(
+        obj_name=obj_name,
+        pose_num=configs_and_info[0]["pose_num"],
+        hand_starting_pose=configs_and_info[0]["hand_starting_pose"],
+    )
+
+    start_time = time.time()
+    with tqdm(total=len(configs_and_info), desc="Processing iCEM MPC") as pbar:
+        for config_i in configs_and_info:
+            action_seq, costs_seq, full_observations, ellites_trj = run_icem_from_config(
+                reward_dict=reward_dict,
+                confi_icem=config_icem,
+                key_body_final_pos=config_i["key_body_final_pos"],
+                config=config_i["config"],
+            )
+            pbar.update(1)
+            file_name = create_file_name_based_position(
+                obj_name=obj_name, pose_num=config_i["pose_num"], hand_starting_pose=config_i["hand_starting_pose"]
+            )
+            np.savez(
+                file_name,
+                action_seq=action_seq,
+                costs_seq=costs_seq,
+                full_observations=full_observations,
+                ellites_trj=ellites_trj,
+                config_info = config_i,
+                reward_dict = reward_dict
+            )
+    # end_time = time.time()
+    # print(f"Total time taken: {end_time - start_time:.2f} seconds")
+    rand_name = "experts_traj/sem-Plate-9969f6178dcd67101c75d484f9069623/sem-Plate-9969f6178dcd67101c75d484f9069623_POSENUM_0_dict_values__1_571__0_0__0_0___0_3__0_7__0_0__.npz"
+    trajjj = np.load(rand_name, allow_pickle=True)
+    key_body_final_pos = trajjj["config_info"].item()["key_body_final_pos"]
+    config = trajjj["config_info"].item()["config"]
+    # print(trajjj)
+    reacher = ReachPoseEnv(
+        config,
+        key_pose_dict=key_body_final_pos,
+        render_mode="human",
+        reward_dict=reward_dict,
+    )
+
+    #trajectory_player(reacher, trajjj["action_seq"])
+    #reacher.close()
+    trajectory_player(reacher, trajjj["ellites_trj"][0])

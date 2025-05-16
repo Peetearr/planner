@@ -19,7 +19,7 @@ def prepare_env_config(frame_skip=4, pose_num=10, obj_name="sem-Plate-9969f6178d
     obj_quat_good = euler.euler2quat(np.deg2rad(90), np.deg2rad(180), np.deg2rad(180))
     obj_pos_good = [0.0, 0, 0.4]
 
-    obj_start_pos = [0.0, 0, -0.3]
+    obj_start_pos = np.array([0.0, 0, -0.3])
 
     obj_start_quat = euler.euler2quat(np.deg2rad(0), np.deg2rad(0), np.deg2rad(0))
 
@@ -85,7 +85,7 @@ def prepare_env_config(frame_skip=4, pose_num=10, obj_name="sem-Plate-9969f6178d
 
 def get_tabale_top_start_pos():
     offset_x = 0
-    offset_y = 0.6
+    offset_y = 0.4
     square_size = 0.3
     positions = 3
     posible_x = np.linspace(-square_size + offset_x  , square_size + offset_x, positions)

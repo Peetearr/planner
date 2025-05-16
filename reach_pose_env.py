@@ -1,4 +1,5 @@
 from copy import deepcopy
+from hashlib import sha256
 from typing import Any, Dict, List, Optional, Tuple, Union
 import mujoco
 import numpy as np
@@ -89,6 +90,27 @@ class ReachPoseEnvConfig:
     obj_scale: float = 1.0
     frame_skip: int = 5
     hand_starting_pose: Dict[str, float] = field(default_factory=dict)
+
+    def __hash__(self):
+        # Convert dictionaries to tuples of sorted key-value pairs for hashing
+        hand_final_pose_tuple = tuple(sorted(self.hand_final_full_pose.items()))
+        hand_starting_pose_tuple = tuple(sorted(self.hand_starting_pose.items()))
+        # Convert NumPy arrays to tuples for hashing
+        obj_start_pos_tuple = tuple(self.obj_start_pos.flatten())
+        obj_start_quat_tuple = tuple(self.obj_start_quat.flatten())
+        # Combine all fields into a tuple and hash
+        return hash(
+            (
+                self.model_path_hand,
+                self.obj_mesh_path,
+                hand_final_pose_tuple,
+                obj_start_pos_tuple,
+                obj_start_quat_tuple,
+                self.obj_scale,
+                self.frame_skip,
+                hand_starting_pose_tuple,
+            )
+        )
 
 
 def set_position(mj_data: mujoco.MjData, qpos: dict[str, float], maping: dict[str, str] = None):
@@ -215,16 +237,15 @@ class ReachPoseEnv(MujocoEnv):
         composite_model = spec_mujoco.compile()
         composite_data = mujoco.MjData(composite_model)
 
-
         if self.hand_starting_pose is not None:
             set_position_kinematics(composite_data, self.hand_starting_pose)
-        #self.s
+        # self.s
         composite_model.vis.global_.offwidth = self.width
         composite_model.vis.global_.offheight = self.height
-        
+
         self.init_qpos = composite_data.qpos.ravel().copy()
         self.init_qvel = composite_data.qvel.ravel().copy()
-        
+
         return composite_model, composite_data
 
     def simultion_settings(self, spec: mujoco.MjSpec):
@@ -368,20 +389,21 @@ class ReachPoseEnv(MujocoEnv):
     def reward(self, obs_dict: Dict[str, np.float32], acton: Optional[np.ndarray]=None) -> tuple[np.float32, dict]:
         weight_keypoints_error = self.reward_dict["distance_key_points"]
         weight_obj_error = self.reward_dict["obj_displacement"]
-        weight_wirst_orient = self.reward_dict["diff_orient"]
-        
+        weight_wirst_orient = self.reward_dict.get("diff_orient", 0)
+        weight_obj_speed = self.reward_dict.get("obj_speed", 0)
         sum_error_dist = np.sum(obs_dict["distance_key_points_array"])
 
         r1 = -sum_error_dist * weight_keypoints_error
         r2 = -obs_dict["object_error"] * weight_obj_error
         r3 = -obs_dict["anglediff"] * weight_wirst_orient
-        
-        reward = r1 + r2 + r3
+        r4 = -obs_dict["obj_speed"] * weight_obj_speed
+        reward = r1 + r2 + r3 + r4
 
         decompose = {
             "distance_key_points": r1,
             "obj_displacement": r2,
             "diff_orient": r3,
+            "obj_speed": r4,
         }
         return reward, decompose
     
@@ -410,7 +432,7 @@ class ReachPoseEnv(MujocoEnv):
         object_pose = self.data.xipos[body_grasp_id]
         object_quat = self.data.xquat[body_grasp_id]
         current_control = self.data.ctrl
-
+        #self.data.й
 
         distance_key_points_array = np.array(list(distances.values()))
         graspable_obj_name = "graspable_object"
@@ -453,7 +475,6 @@ class ReachPoseEnv(MujocoEnv):
             "object_pose": object_pose,
             "object_quat": object_quat,
             "current_control": current_control,
-
 
         }
 
