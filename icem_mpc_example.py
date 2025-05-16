@@ -97,7 +97,7 @@ def cost_traj_mpc_tensor(env: ReachPoseEnv, state_vec: Tensor, action_vec: Tenso
 
 
 def run_mpc():
-    POSE_NUM, obj_name, key_body_final_pos, config, final_hand_joint_pose = prepare_env_config()
+    POSE_NUM, obj_name, key_body_final_pos, config, final_hand_joint_pose = prepare_env_config(obj_name = "core-bowl-a593e8863200fdb0664b3b9b23ddfcbc", pose_num=2)
 
     reward_dict = {
         "distance_key_points": 1.5,
@@ -125,8 +125,8 @@ def run_mpc():
         nx=start_state.shape[0],
         nu=nu,
         warmup_iters=100,
-        online_iters=50,
-        num_samples=200,
+        online_iters=40,
+        num_samples=50,
         num_elites=20,
         elites_keep_fraction=0.1,
         horizon=7,
@@ -176,10 +176,10 @@ def run_mpc():
             if reward > -0.5 and not is_reseted:
                 ctrl.reset()
                 print("Reset")
-                ctrl.N = ctrl.N * 2
+                ctrl.N = 300
                 ctrl.K = ctrl.K * 2
                 is_reseted = True
-                ctrl.alpha = 0.001
+                ctrl.alpha = 0.0015
         reacher.close()
         print("Finish traj generate")
         print("Time elapsed: ", time.time() - start_time)
