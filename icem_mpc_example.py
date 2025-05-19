@@ -97,7 +97,7 @@ def cost_traj_mpc_tensor(env: ReachPoseEnv, state_vec: Tensor, action_vec: Tenso
 
 
 def run_mpc():
-    POSE_NUM, obj_name, key_body_final_pos, config, final_hand_joint_pose = prepare_env_config(obj_name = "core-bowl-a593e8863200fdb0664b3b9b23ddfcbc", pose_num=2)
+    POSE_NUM, obj_name, key_body_final_pos, config, final_hand_joint_pose = prepare_env_config(obj_name = "core-bowl-a593e8863200fdb0664b3b9b23ddfcbc", pose_num=4)
 
     reward_dict = {
         "distance_key_points": 1.5,
@@ -125,11 +125,11 @@ def run_mpc():
         nx=start_state.shape[0],
         nu=nu,
         warmup_iters=100,
-        online_iters=40,
+        online_iters=70,
         num_samples=50,
         num_elites=20,
         elites_keep_fraction=0.1,
-        horizon=7,
+        horizon=11,
         device="cpu",
         alpha=0.003,
         noise_beta=2,
@@ -173,11 +173,11 @@ def run_mpc():
             print(f"STD[0] {np.array(std_normilize).round(3)}")
 
             ctrl.shift()
-            if reward > -0.5 and not is_reseted:
+            if reward > -0.8 and not is_reseted:
                 ctrl.reset()
                 print("Reset")
-                ctrl.N = 300
-                ctrl.K = ctrl.K * 2
+                ctrl.N = 500
+                ctrl.K = ctrl.K * 3
                 is_reseted = True
                 ctrl.alpha = 0.0015
         reacher.close()
