@@ -6,14 +6,15 @@ import numpy as np
 from gymnasium.envs.mujoco.mujoco_env import MujocoEnv
 import transforms3d.euler as euler
 from transforms3d import quaternions
-from grasp_env_utils import (
+from numpy.typing import NDArray
+from dataclasses import dataclass, field
+
+from icem_mpc.grasp_env_utils import (
     get_key_bodies_pose,
     set_position_kinematics,
 )
 
-from load_complex_obj import add_graspable_body, add_meshes_from_folder
-from numpy.typing import NDArray
-from dataclasses import dataclass, field
+from icem_mpc.load_complex_obj import add_graspable_body, add_meshes_from_folder
 
 
 def revert_obs_vector(

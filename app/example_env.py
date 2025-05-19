@@ -1,6 +1,6 @@
 import time
-from config_crearor import get_tabale_top_start_pos, prepare_env_config
-from reach_pose_env import ReachPoseEnv
+from icem_mpc.config_crearor import get_tabale_top_start_pos, prepare_env_config
+from icem_mpc.reach_pose_env import ReachPoseEnv
 import numpy as np
 
 

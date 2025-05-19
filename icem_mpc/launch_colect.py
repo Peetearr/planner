@@ -1,22 +1,19 @@
 from dataclasses import dataclass
-from hashlib import sha256
 import itertools
 import os
 import re
 import time
 from typing import Optional
-import mujoco
 import numpy as np
 from config_crearor import get_tabale_top_start_pos, prepare_env_config
 from pytorch_icem import iCEM
 from torch import Tensor
-
-from icem_mpc_example import trajectory_player, cost_traj_mpc_tensor, dynamics_mpc_wrapper_tensor
-from reach_pose_env import ReachPoseEnv, ReachPoseEnvConfig
-import gymnasium as gym
 from functools import partial
 from tqdm import tqdm
-import matplotlib.pyplot as plt
+
+
+from icem_mpc.mpc_utils import trajectory_player, cost_traj_mpc_tensor, dynamics_mpc_wrapper_tensor
+from icem_mpc.reach_pose_env import ReachPoseEnv, ReachPoseEnvConfig
 
 
 @dataclass

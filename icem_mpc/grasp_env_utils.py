@@ -1,14 +1,13 @@
 from copy import deepcopy
-
-# import gymnasium_robotics
 import time
 import mujoco
 import mujoco.viewer
 import numpy as np
-from load_complex_obj import add_graspable_body, add_meshes_from_folder
 import transforms3d.euler as euler
 from transforms3d import affines
 from numpy.typing import NDArray
+
+from icem_mpc.load_complex_obj import add_graspable_body, add_meshes_from_folder
 
 Z_QUAT_0 = euler.euler2quat(np.deg2rad(5), np.deg2rad(0), np.deg2rad(10))
 

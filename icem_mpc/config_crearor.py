@@ -1,13 +1,12 @@
 from copy import deepcopy
 import numpy as np
 import transforms3d.euler as euler
-from grasp_env_utils import (
+from icem_mpc.grasp_env_utils import (
     default_mapping,
     get_final_bodies_pose,
     transform_wirst_pos_to_obj,
 )
-
-from reach_pose_env import ReachPoseEnvConfig, convert_pose_dexgraspnet_to_mujoco
+from icem_mpc.reach_pose_env import ReachPoseEnvConfig, convert_pose_dexgraspnet_to_mujoco
 
 
 def prepare_env_config(frame_skip=4, pose_num=10, obj_name="sem-Plate-9969f6178dcd67101c75d484f9069623"):

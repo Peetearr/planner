@@ -3,8 +3,6 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 import transforms3d.euler as euler
-import xml.etree.ElementTree as ET
- 
 import os
 import trimesh
 
