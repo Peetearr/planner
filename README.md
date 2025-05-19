@@ -53,7 +53,7 @@ The reward function in `reach_pose_env.py` encourages the robot hand to minimize
 
 
 
-## Thaks
+## Thanks
 
 [DexGraspNet](https://github.com/PKU-EPIC/DexGraspNet) -- for good postions 
 
