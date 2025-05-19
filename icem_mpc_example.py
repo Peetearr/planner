@@ -124,12 +124,12 @@ def run_mpc():
         sigma=Tensor(initial_sigma),
         nx=start_state.shape[0],
         nu=nu,
-        warmup_iters=100,
-        online_iters=70,
-        num_samples=50,
+        warmup_iters=120,
+        online_iters=50,
+        num_samples=30,
         num_elites=20,
         elites_keep_fraction=0.1,
-        horizon=11,
+        horizon=10,
         device="cpu",
         alpha=0.003,
         noise_beta=2,
@@ -176,8 +176,8 @@ def run_mpc():
             if reward > -0.8 and not is_reseted:
                 ctrl.reset()
                 print("Reset")
-                ctrl.N = 500
-                ctrl.K = ctrl.K * 3
+                ctrl.N = 250
+                ctrl.K = 60
                 is_reseted = True
                 ctrl.alpha = 0.0015
         reacher.close()

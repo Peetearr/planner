@@ -407,6 +407,14 @@ class ReachPoseEnv(MujocoEnv):
         }
         return reward, decompose
     
+    def get_q_pos_hand(self) -> NDArray[np.float64]:
+        q_poses = np.zeros(len(self.hand_final_full_pose.keys()))
+        for num, key_i in enumerate(self.hand_final_full_pose.keys()):
+            joint_id = self.data.model.joint(name=key_i).id
+            qpos_i = self.data.qpos[joint_id]
+            q_poses[num] = qpos_i
+        return q_poses
+    
     def _get_full_obs(self) -> Dict[str, Any]:
         """
         Get the observation of the environment.
@@ -432,7 +440,7 @@ class ReachPoseEnv(MujocoEnv):
         object_pose = self.data.xipos[body_grasp_id]
         object_quat = self.data.xquat[body_grasp_id]
         current_control = self.data.ctrl
-        #self.data.й
+
 
         distance_key_points_array = np.array(list(distances.values()))
         graspable_obj_name = "graspable_object"
@@ -464,6 +472,8 @@ class ReachPoseEnv(MujocoEnv):
         obj_speed_z = self.data.qvel[joint_id_z]
         obj_speed = np.linalg.norm(np.array([obj_speed_x, obj_speed_y, obj_speed_z]))
 
+        hand_q_poses = self.get_q_pos_hand()
+
         return  {
             "distance_key_points_array": distance_key_points_array,
             "obj_speed": obj_speed,
@@ -475,6 +485,7 @@ class ReachPoseEnv(MujocoEnv):
             "object_pose": object_pose,
             "object_quat": object_quat,
             "current_control": current_control,
+            "hand_q_poses": hand_q_poses,
 
         }
 

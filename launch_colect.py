@@ -29,6 +29,9 @@ class ConfigICEM:
     horizon: int = 7
     alpha: float = 0.005
     mpc_steps: int = 40
+    num_samples_after_reset: int = 250
+    reset_penalty_thr: float = -0.8
+    num_elites_after_reset: int = 60
 
 
 def run_icem(
@@ -106,6 +109,7 @@ def run_icem_from_config(
 
     number_of_trj = int(ctrl.keep_fraction * ctrl.K)
     ellites_trj = np.zeros((number_of_trj, confi_icem.mpc_steps, nu), dtype=np.float32)
+    is_reseted = False
 
     for i in range(confi_icem.mpc_steps):
         action_i = ctrl.command(obs_mpc_state, shift_nominal_trajectory=False)
@@ -116,7 +120,7 @@ def run_icem_from_config(
         # Collect data
         costs_seq[i] = reward
         action_seq[i] = action_np
-        ellites_trj[:, i, :] = ctrl.kept_elites[:, 0, :].to("cpu").numpy()
+        ellites_trj[:, i, :] = ctrl.kept_elites[:number_of_trj, 0, :].to("cpu").numpy()
         full_observations.append(debug_dict["full_obs"])
 
         # Debugging
@@ -130,6 +134,14 @@ def run_icem_from_config(
             print(f"STD[0] {np.array(std_normilize).round(3)}")
 
         ctrl.shift()
+ 
+        if reward < confi_icem.reset_penalty_thr and not is_reseted:
+            ctrl.reset()
+            ctrl.N = confi_icem.num_samples_after_reset
+            ctrl.K = confi_icem.num_elites_after_reset
+            is_reseted = True
+            ctrl.alpha = 0.0015
+ 
 
     if reacher.render_mode == "human":
         reacher.close()
@@ -176,18 +188,35 @@ def create_file_name_based_position(
 if __name__ == "__main__":
     reward_dict = {
         "distance_key_points": 1.5,
-        "obj_displacement": 10.0,
-        "diff_orient": 3.0,
-        "obj_speed": 1,
+        "obj_displacement": 2.0,
+        "diff_orient": 1.0,
+        "obj_speed": 1.0,
     }
     # For testing
-    config_icem = ConfigICEM()
-    config_icem.horizon = 3
-    config_icem.mpc_steps = 3
-    config_icem.warmup_iters = 4
-    config_icem.online_iters = 4
-    config_icem.num_samples = 5
-    config_icem.num_elites = 2
+    config_icem_mock = ConfigICEM()
+    config_icem_mock.horizon = 3
+    config_icem_mock.mpc_steps = 3
+    config_icem_mock.warmup_iters = 4
+    config_icem_mock.online_iters = 4
+    config_icem_mock.num_samples = 5
+    config_icem_mock.num_elites = 2
+
+    config_icem_normal = ConfigICEM()
+    config_icem_normal.horizon = 10
+    config_icem_mock.mpc_steps = 25
+    config_icem_normal.warmup_iters = 120
+    config_icem_normal.online_iters = 50
+    config_icem_normal.num_samples = 30
+
+    config_icem_normal.num_elites = 20
+    config_icem_normal.elites_keep_fraction = 0.1
+    config_icem_normal.alpha = 0.003
+
+    config_icem_normal.num_samples_after_reset = 250
+    config_icem_normal.reset_penalty_thr = -0.8
+    config_icem_normal.num_elites_after_reset = 60
+
+
 
     obj_name = "sem-Plate-9969f6178dcd67101c75d484f9069623"
     configs_and_info = create_configs_for_env(obj_name)
@@ -203,7 +232,7 @@ if __name__ == "__main__":
         for config_i in configs_and_info:
             action_seq, costs_seq, full_observations, ellites_trj = run_icem_from_config(
                 reward_dict=reward_dict,
-                confi_icem=config_icem,
+                confi_icem=config_icem_mock,
                 key_body_final_pos=config_i["key_body_final_pos"],
                 config=config_i["config"],
             )
@@ -217,8 +246,8 @@ if __name__ == "__main__":
                 costs_seq=costs_seq,
                 full_observations=full_observations,
                 ellites_trj=ellites_trj,
-                config_info = config_i,
-                reward_dict = reward_dict
+                config_info=config_i,
+                reward_dict=reward_dict,
             )
     # end_time = time.time()
     # print(f"Total time taken: {end_time - start_time:.2f} seconds")
@@ -234,6 +263,6 @@ if __name__ == "__main__":
         reward_dict=reward_dict,
     )
 
-    #trajectory_player(reacher, trajjj["action_seq"])
-    #reacher.close()
+    # trajectory_player(reacher, trajjj["action_seq"])
+    # reacher.close()
     trajectory_player(reacher, trajjj["ellites_trj"][0])
