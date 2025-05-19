@@ -134,22 +134,20 @@ def run_icem_from_config(
             print(f"STD[0] {np.array(std_normilize).round(3)}")
 
         ctrl.shift()
- 
+
         if reward < confi_icem.reset_penalty_thr and not is_reseted:
             ctrl.reset()
             ctrl.N = confi_icem.num_samples_after_reset
             ctrl.K = confi_icem.num_elites_after_reset
             is_reseted = True
             ctrl.alpha = 0.0015
- 
 
     if reacher.render_mode == "human":
         reacher.close()
     return action_seq, costs_seq, full_observations, ellites_trj
 
 
-def create_configs_for_env(obj_path: str):
-    pose_nums = range(10)
+def create_configs_for_env(obj_path: str, pose_nums: list[int] = [0, 1, 2]):
     start_poses, x_pose, y_pose = get_tabale_top_start_pos()
     start_p_num = itertools.product(start_poses, pose_nums)
     env_config_list = []
@@ -185,54 +183,22 @@ def create_file_name_based_position(
     return filename
 
 
-if __name__ == "__main__":
-    reward_dict = {
-        "distance_key_points": 1.5,
-        "obj_displacement": 2.0,
-        "diff_orient": 1.0,
-        "obj_speed": 1.0,
-    }
-    # For testing
-    config_icem_mock = ConfigICEM()
-    config_icem_mock.horizon = 3
-    config_icem_mock.mpc_steps = 3
-    config_icem_mock.warmup_iters = 4
-    config_icem_mock.online_iters = 4
-    config_icem_mock.num_samples = 5
-    config_icem_mock.num_elites = 2
+def run_object_run(
+    reward_dict: dict,
+    config_icem: ConfigICEM,
+    pose_nums: list[int] = [0, 1, 2],
+    obj_name: str = "core-bowl-a593e8863200fdb0664b3b9b23ddfcbc",
+):
 
-    config_icem_normal = ConfigICEM()
-    config_icem_normal.horizon = 10
-    config_icem_mock.mpc_steps = 25
-    config_icem_normal.warmup_iters = 120
-    config_icem_normal.online_iters = 50
-    config_icem_normal.num_samples = 30
-
-    config_icem_normal.num_elites = 20
-    config_icem_normal.elites_keep_fraction = 0.1
-    config_icem_normal.alpha = 0.003
-
-    config_icem_normal.num_samples_after_reset = 250
-    config_icem_normal.reset_penalty_thr = -0.8
-    config_icem_normal.num_elites_after_reset = 60
-
-
-
-    obj_name = "sem-Plate-9969f6178dcd67101c75d484f9069623"
-    configs_and_info = create_configs_for_env(obj_name)
-    # For testing
-    file_name = create_file_name_based_position(
-        obj_name=obj_name,
-        pose_num=configs_and_info[0]["pose_num"],
-        hand_starting_pose=configs_and_info[0]["hand_starting_pose"],
-    )
+    obj_name = "core-bowl-a593e8863200fdb0664b3b9b23ddfcbc"
+    configs_and_info = create_configs_for_env(obj_name, pose_nums)
 
     start_time = time.time()
     with tqdm(total=len(configs_and_info), desc="Processing iCEM MPC") as pbar:
         for config_i in configs_and_info:
             action_seq, costs_seq, full_observations, ellites_trj = run_icem_from_config(
                 reward_dict=reward_dict,
-                confi_icem=config_icem_mock,
+                confi_icem=config_icem,
                 key_body_final_pos=config_i["key_body_final_pos"],
                 config=config_i["config"],
             )
@@ -249,20 +215,32 @@ if __name__ == "__main__":
                 config_info=config_i,
                 reward_dict=reward_dict,
             )
-    # end_time = time.time()
-    # print(f"Total time taken: {end_time - start_time:.2f} seconds")
-    rand_name = "experts_traj/sem-Plate-9969f6178dcd67101c75d484f9069623/sem-Plate-9969f6178dcd67101c75d484f9069623_POSENUM_0_dict_values__1_571__0_0__0_0___0_3__0_7__0_0__.npz"
-    trajjj = np.load(rand_name, allow_pickle=True)
-    key_body_final_pos = trajjj["config_info"].item()["key_body_final_pos"]
-    config = trajjj["config_info"].item()["config"]
-    # print(trajjj)
-    reacher = ReachPoseEnv(
-        config,
-        key_pose_dict=key_body_final_pos,
-        render_mode="human",
-        reward_dict=reward_dict,
-    )
+    end_time = time.time()
+    print(f"Total time taken: {end_time - start_time:.2f} seconds")
 
-    # trajectory_player(reacher, trajjj["action_seq"])
-    # reacher.close()
-    trajectory_player(reacher, trajjj["ellites_trj"][0])
+
+if __name__ == "__main__":
+
+    reward_dict = {
+        "distance_key_points": 1.5,
+        "obj_displacement": 2.0,
+        "diff_orient": 1.0,
+        "obj_speed": 1.0,
+    }
+
+    config_icem = ConfigICEM()
+    config_icem.horizon = 10
+    config_icem.mpc_steps = 23
+    config_icem.warmup_iters = 120
+    config_icem.online_iters = 50
+    config_icem.num_samples = 30
+
+    config_icem.num_elites = 20
+    config_icem.elites_keep_fraction = 0.1
+    config_icem.alpha = 0.003
+
+    config_icem.num_samples_after_reset = 250
+    config_icem.reset_penalty_thr = -0.8
+    config_icem.num_elites_after_reset = 60
+
+    run_object_run(reward_dict, config_icem, obj_name="core-bowl-a593e8863200fdb0664b3b9b23ddfcbc", pose_nums=[0, 1])
