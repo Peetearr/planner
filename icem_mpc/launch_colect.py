@@ -5,7 +5,7 @@ import re
 import time
 from typing import Optional
 import numpy as np
-
+from joblib import Parallel, delayed
 from pytorch_icem import iCEM
 from torch import Tensor
 from functools import partial
@@ -180,37 +180,63 @@ def create_file_name_based_position(
     return filename
 
 
+def process_single_config(config_i, reward_dict, config_icem, obj_name, folder):
+    """Helper function to process a single configuration"""
+    action_seq, costs_seq, full_observations, ellites_trj = run_icem_from_config(
+        reward_dict=reward_dict,
+        confi_icem=config_icem,
+        key_body_final_pos=config_i["key_body_final_pos"],
+        config=config_i["config"],
+    )
+
+    file_name = create_file_name_based_position(
+        obj_name=obj_name,
+        pose_num=config_i["pose_num"],
+        hand_starting_pose=config_i["hand_starting_pose"],
+        folder=folder,
+    )
+
+    np.savez(
+        file_name,
+        action_seq=action_seq,
+        costs_seq=costs_seq,
+        full_observations=full_observations,
+        ellites_trj=ellites_trj,
+        config_info=config_i,
+        reward_dict=reward_dict,
+    )
+    return file_name
+
+
 def run_object_run(
     reward_dict: dict,
     config_icem: ConfigICEM,
     pose_nums: list[int] = [0, 1, 2],
     obj_name: str = "core-bowl-a593e8863200fdb0664b3b9b23ddfcbc",
+    folder: str = "experts_traj",
+    n_jobs: int = 1,
 ):
+    """
+    Run iCEM MPC optimization in parallel using joblib
 
+    Args:
+        reward_dict: Dictionary containing reward weights
+        config_icem: iCEM configuration object
+        pose_nums: List of pose numbers to process
+        obj_name: Name of the object
+        folder: Output folder for saving results
+        n_jobs: Number of parallel jobs (-1 means using all processors)
+    """
     configs_and_info = create_configs_for_env(obj_name, pose_nums)
 
     start_time = time.time()
-    with tqdm(total=len(configs_and_info), desc="Processing iCEM MPC") as pbar:
-        for config_i in configs_and_info:
-            action_seq, costs_seq, full_observations, ellites_trj = run_icem_from_config(
-                reward_dict=reward_dict,
-                confi_icem=config_icem,
-                key_body_final_pos=config_i["key_body_final_pos"],
-                config=config_i["config"],
-            )
-            pbar.update(1)
-            file_name = create_file_name_based_position(
-                obj_name=obj_name, pose_num=config_i["pose_num"], hand_starting_pose=config_i["hand_starting_pose"]
-            )
-            np.savez(
-                file_name,
-                action_seq=action_seq,
-                costs_seq=costs_seq,
-                full_observations=full_observations,
-                ellites_trj=ellites_trj,
-                config_info=config_i,
-                reward_dict=reward_dict,
-            )
+
+    # Run parallel processing
+    results = Parallel(n_jobs=n_jobs, verbose=100)(
+        delayed(process_single_config)(config_i, reward_dict, config_icem, obj_name, folder)
+        for config_i in configs_and_info
+    )
+
     end_time = time.time()
     print(f"Total time taken: {end_time - start_time:.2f} seconds")
 
@@ -239,4 +265,6 @@ if __name__ == "__main__":
     config_icem.reset_penalty_thr = -0.8
     config_icem.num_elites_after_reset = 60
 
-    run_object_run(reward_dict, config_icem, obj_name="core-bowl-a593e8863200fdb0664b3b9b23ddfcbc", pose_nums=[0, 1])
+    run_object_run(
+        reward_dict, config_icem, obj_name="core-bowl-a593e8863200fdb0664b3b9b23ddfcbc", pose_nums=[0, 1], n_jobs=1
+    )
