@@ -15,4 +15,5 @@ dependencies:
     - mujoco==3.2.7
     - git+https://github.com/BE2R-Lab-RND-AI-Grasping/pytorch_icem.git
     - tqdm
+    - joblib
   

@@ -1,5 +1,3 @@
-
-
 from icem_mpc.launch_colect import ConfigICEM, run_object_run
 
 
@@ -25,4 +23,11 @@ dummy_config_icem.num_samples_after_reset = 5
 dummy_config_icem.reset_penalty_thr = -0.8
 dummy_config_icem.num_elites_after_reset = 3
 
-run_object_run(reward_dict, dummy_config_icem, obj_name="core-bowl-a593e8863200fdb0664b3b9b23ddfcbc", pose_nums=[0, 1])
+run_object_run(
+    reward_dict,
+    dummy_config_icem,
+    obj_name="core-bowl-a593e8863200fdb0664b3b9b23ddfcbc",
+    pose_nums=[0, 1],
+    folder="experts_traj_dummy",
+    n_jobs=1
+)
