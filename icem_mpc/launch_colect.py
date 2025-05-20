@@ -5,13 +5,13 @@ import re
 import time
 from typing import Optional
 import numpy as np
-from config_crearor import get_tabale_top_start_pos, prepare_env_config
+
 from pytorch_icem import iCEM
 from torch import Tensor
 from functools import partial
 from tqdm import tqdm
 
-
+from icem_mpc.config_crearor import get_tabale_top_start_pos, prepare_env_config
 from icem_mpc.mpc_utils import trajectory_player, cost_traj_mpc_tensor, dynamics_mpc_wrapper_tensor
 from icem_mpc.reach_pose_env import ReachPoseEnv, ReachPoseEnvConfig
 
@@ -187,7 +187,6 @@ def run_object_run(
     obj_name: str = "core-bowl-a593e8863200fdb0664b3b9b23ddfcbc",
 ):
 
-    obj_name = "core-bowl-a593e8863200fdb0664b3b9b23ddfcbc"
     configs_and_info = create_configs_for_env(obj_name, pose_nums)
 
     start_time = time.time()
