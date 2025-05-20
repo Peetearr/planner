@@ -23,7 +23,7 @@ env = ReachPoseEnv(config=config, reward_dict=reward_dict, render_mode="human", 
 config_icem = ConfigICEM()
 config_icem.horizon = 10
 config_icem.mpc_steps = 30
-config_icem.warmup_iters = 50
+config_icem.warmup_iters = 100
 config_icem.online_iters = 50
 config_icem.num_samples = 30
 
@@ -42,10 +42,6 @@ new_action_seq, new_costs_seq, new_full_observations, new_ellites_trj = run_icem
 )
 elapsed_time = time.time() - start_time
 print(f"Elapsed time: {elapsed_time:.2f} seconds")
-
-
-
- 
 
 
 trajectory_player(env, new_action_seq)
