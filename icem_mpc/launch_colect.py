@@ -14,6 +14,7 @@ from tqdm import tqdm
 from icem_mpc.config_crearor import get_tabale_top_start_pos, prepare_env_config
 from icem_mpc.mpc_utils import trajectory_player, cost_traj_mpc_tensor, dynamics_mpc_wrapper_tensor
 from icem_mpc.reach_pose_env import ReachPoseEnv, ReachPoseEnvConfig
+import glob
 
 
 @dataclass
@@ -205,6 +206,7 @@ def process_single_config(config_i, reward_dict, config_icem, obj_name, folder):
         config_info=config_i,
         reward_dict=reward_dict,
     )
+    print(f"Final cost  {costs_seq[-1]}")
     return file_name
 
 
@@ -250,6 +252,11 @@ if __name__ == "__main__":
         "obj_speed": 1.0,
     }
 
+    # Extract all filenames from the folder (only filenames, no folder)
+    folder = "final_positions"
+    filenames = [os.path.splitext(os.path.basename(f))[0] for f in glob.glob(os.path.join(folder, "*.npy"))]
+    print("Final positions:", filenames)
+    
     config_icem = ConfigICEM()
     config_icem.horizon = 10
     config_icem.mpc_steps = 23
@@ -257,14 +264,15 @@ if __name__ == "__main__":
     config_icem.online_iters = 50
     config_icem.num_samples = 30
 
-    config_icem.num_elites = 20
-    config_icem.elites_keep_fraction = 0.1
+    config_icem.num_elites = 10
+    config_icem.elites_keep_fraction = 0.5
     config_icem.alpha = 0.003
 
-    config_icem.num_samples_after_reset = 250
+    config_icem.num_samples_after_reset = 100
     config_icem.reset_penalty_thr = -0.8
     config_icem.num_elites_after_reset = 60
-
-    run_object_run(
-        reward_dict, config_icem, obj_name="core-bowl-a593e8863200fdb0664b3b9b23ddfcbc", pose_nums=[0, 1], n_jobs=1
-    )
+    for obj_name in filenames:
+        print("Running for object:", obj_name)
+        run_object_run(
+            reward_dict, config_icem, obj_name=obj_name, pose_nums=[0], n_jobs=1
+        )
