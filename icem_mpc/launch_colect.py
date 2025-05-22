@@ -259,7 +259,7 @@ if __name__ == "__main__":
     
     config_icem = ConfigICEM()
     config_icem.horizon = 10
-    config_icem.mpc_steps = 23
+    config_icem.mpc_steps = 27
     config_icem.warmup_iters = 120
     config_icem.online_iters = 50
     config_icem.num_samples = 30
@@ -274,5 +274,5 @@ if __name__ == "__main__":
     for obj_name in filenames:
         print("Running for object:", obj_name)
         run_object_run(
-            reward_dict, config_icem, obj_name=obj_name, pose_nums=[0], n_jobs=1
+            reward_dict, config_icem, obj_name=obj_name, pose_nums=[0, 1, 2], n_jobs=1
         )

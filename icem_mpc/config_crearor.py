@@ -86,7 +86,7 @@ def get_tabale_top_start_pos():
     offset_x = 0
     offset_y = 0.4
     square_size = 0.3
-    positions = 3
+    positions = 1
     posible_x = np.linspace(-square_size + offset_x  , square_size + offset_x, positions)
     posible_y = np.linspace(-square_size + offset_y, square_size + offset_y, positions)
     xy_postions = np.meshgrid(posible_x, posible_y)

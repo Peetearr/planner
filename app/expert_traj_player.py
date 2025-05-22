@@ -5,7 +5,7 @@ from icem_mpc.launch_colect import ConfigICEM, run_icem_from_config
 from icem_mpc.mpc_utils import trajectory_player
 from icem_mpc.reach_pose_env import ReachPoseEnv
 import numpy as np
-import reach_pose_env
+
 import matplotlib.pyplot as plt
 
 file_name = "experts_traj/core-bowl-a593e8863200fdb0664b3b9b23ddfcbc/core-bowl-a593e8863200fdb0664b3b9b23ddfcbc_POSENUM_0_dict_values__1_571__0_0__0_0___0_3__0_1__0_0__.npz"

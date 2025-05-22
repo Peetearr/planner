@@ -327,7 +327,7 @@ class ReachPoseEnv(MujocoEnv):
       
         if self.kinematics_debug:
             self.do_simulation(maped_action, self.frame_skip)
-            set_position_kinematics(self.data, self.hand_starting_pose)
+            set_position_kinematics(self.data, self.hand_final_full_pose)
         else:
             self.do_simulation(maped_action, self.frame_skip)
 
