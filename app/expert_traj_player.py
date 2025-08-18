@@ -8,7 +8,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-file_name = "experts_traj_dummy/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03_POSENUM_6_dict_values__1_571__0_0__0_0___0_3__0_1__0_0__.npz"
+file_name = "experts_traj_shadow_dexee/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03_POSENUM_6_dict_values__1_571__0_0__0_0___0_3__0_1__0_0__.npz"
 
 load_file = np.load(file=file_name, allow_pickle=True, fix_imports=True)
 
@@ -36,30 +36,5 @@ config_icem.alpha = 0.003
 config_icem.num_samples_after_reset = 100
 config_icem.reset_penalty_thr = -0.8
 config_icem.num_elites_after_reset = 60
-
-
-# config_icem = ConfigICEM()
-# config_icem.horizon = 10
-# config_icem.mpc_steps = 30
-# config_icem.warmup_iters = 100
-# config_icem.online_iters = 50
-# config_icem.num_samples = 30
-
-# config_icem.num_elites = 10
-# config_icem.elites_keep_fraction = 0.5
-# config_icem.alpha = 0.003
-
-# config_icem.num_samples_after_reset = 60
-# config_icem.reset_penalty_thr = -0.5
-# config_icem.num_elites_after_reset = 20
-
-
-# start_time = time.time()
-# new_action_seq, new_costs_seq, new_full_observations, new_ellites_trj = run_icem_from_config(
-#     reward_dict, config_icem, key_body_final_pos, config, render_mode="human"
-# )
-# elapsed_time = time.time() - start_time
-# print(f"Elapsed time: {elapsed_time:.2f} seconds")
-
 
 trajectory_player(env, action_seq)

@@ -58,3 +58,21 @@ The reward function in `reach_pose_env.py` encourages the robot hand to minimize
 [DexGraspNet](https://github.com/PKU-EPIC/DexGraspNet) -- for good postions 
 
 [pytorch_icem](https://github.com/UM-ARM-Lab/pytorch_icem) -- for fast and simple implemnatation iCEM
+
+## Dex-EE
+
+The expert trajectories are located in `experts_traj_shadow_dexee` folder. The xml-model Dex-EE are located in `mjcf/model_dexgraspnet/shadow_dexee.xml`.
+
+To start the planner, run:
+```bash
+conda python app/launch_collect_trj.py
+```
+
+To play the expert trajectories, run:
+```bash
+conda python app/expert_traj_player.py
+``` 
+or
+```bash
+conda python app/footage_coolect.py
+``` 

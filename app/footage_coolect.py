@@ -7,7 +7,8 @@ from icem_mpc.reach_pose_env import ReachPoseEnv
 import numpy as np
 import matplotlib.pyplot as plt
 
-folder = "experts_traj_dummy"
+hand_name = "shadow_dexee"
+folder = "experts_traj_" + hand_name
 filenames = [y for x in os.walk(folder) for y in glob.glob(os.path.join(x[0], '*.npz'))]
 print(filenames)
 for file_name in filenames:
