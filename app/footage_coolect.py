@@ -5,10 +5,9 @@ from icem_mpc.launch_colect import ConfigICEM, run_icem_from_config
 from icem_mpc.mpc_utils import trajectory_player
 from icem_mpc.reach_pose_env import ReachPoseEnv
 import numpy as np
-import reach_pose_env
 import matplotlib.pyplot as plt
 
-folder = "experts_traj"
+folder = "experts_traj_dummy"
 filenames = [y for x in os.walk(folder) for y in glob.glob(os.path.join(x[0], '*.npz'))]
 print(filenames)
 for file_name in filenames:

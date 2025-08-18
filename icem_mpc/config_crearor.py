@@ -8,12 +8,11 @@ from icem_mpc.grasp_env_utils import (
 )
 from icem_mpc.reach_pose_env import ReachPoseEnvConfig, convert_pose_dexgraspnet_to_mujoco
 
+def prepare_env_config(frame_skip=4, pose_num=10, obj_name="core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03"):
 
-def prepare_env_config(frame_skip=4, pose_num=10, obj_name="sem-Plate-9969f6178dcd67101c75d484f9069623"):
-
-    pos_path_name = "final_positions/" + obj_name + ".npy"
+    pos_path_name = "final_positions/shadow_dexee/" + obj_name + ".npy"
     mesh_path = "mjcf/model_dexgraspnet/meshes/objs/" + obj_name + "/coacd"
-    model_path_hand = "./mjcf/model_dexgraspnet/shadow_hand_wrist_free_special_path.xml"
+    model_path_hand = "./mjcf/model_dexgraspnet/shadow_dexee.xml"
 
     obj_quat_good = euler.euler2quat(np.deg2rad(90), np.deg2rad(180), np.deg2rad(180))
     obj_pos_good = [0.0, 0, 0.4]
@@ -24,7 +23,6 @@ def prepare_env_config(frame_skip=4, pose_num=10, obj_name="sem-Plate-9969f6178d
 
     core_mug = np.load(pos_path_name, allow_pickle=True)
     qpos_hand = core_mug[pose_num]["qpos"]
-
     wirst_pos = np.array(
         [
             qpos_hand["WRJTx"],

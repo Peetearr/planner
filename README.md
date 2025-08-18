@@ -20,7 +20,7 @@ Approach trajectory and grasp pose matching:
 ## Project Structure
 ```
 .
-├── app/                     # Example applications
+├── app/                    # Example applications
 ├── icem_mpc/               # Core implementation
 ├── mjcf/                   # MuJoCo model files
 ├── final_positions/        # Pre-computed grasp positions

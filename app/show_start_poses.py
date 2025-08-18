@@ -9,10 +9,11 @@ DEFAULT_CAMERA_CONFIG = {
     "elevation": 90,
 }
 
-
 def show_start_poses():
     POSE_NUM, obj_name, key_body_final_pos, config, final_act_pose_sh_hand = prepare_env_config()
     start_poses, x_pose, y_pose = get_tabale_top_start_pos()
+    # key_body_final_pos = 1
+    print(key_body_final_pos)
 
     for st_pose in start_poses:
         config.hand_starting_pose = st_pose
@@ -25,8 +26,10 @@ def show_start_poses():
             height=1200,
         )
         env.kinematics_debug = True
+        act = np.zeros(len(env.action_space.sample()))
+        act[-12:] = [0, -1.2, 0, -0.5, 0.2, -1.2, 0, -0.5, -0.2, -1.2, 0, -0.5]
         for _ in range(100):
-            reduced_obs, reward, _, _, debug_dict = env.step(np.zeros(len(env.action_space.sample())))
+            reduced_obs, reward, _, _, debug_dict = env.step(act)
             time.sleep(0.005)
 
         env.close()

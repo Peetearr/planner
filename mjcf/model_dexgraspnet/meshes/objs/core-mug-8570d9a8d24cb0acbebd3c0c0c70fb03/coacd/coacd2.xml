@@ -1,0 +1,14 @@
+<mujoco model="root">
+  <compiler angle="radian" meshdir="."/>
+
+  <asset>
+    <mesh name="dec" file="coacd_convex_piece_0.obj" scale="0.1 0.1 0.1"/>
+  </asset>
+
+  <worldbody>
+  <body name="object_grap" gravcomp="1">
+    <inertial pos="0 0 0"  mass="0.3" />
+    <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.75 0.75 0.75 0.5" mesh="dec"/>
+  </body>
+  </worldbody>
+</mujoco>

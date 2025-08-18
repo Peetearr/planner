@@ -9,7 +9,6 @@ from joblib import Parallel, delayed
 from pytorch_icem import iCEM
 from torch import Tensor
 from functools import partial
-from tqdm import tqdm
 
 from icem_mpc.config_crearor import get_tabale_top_start_pos, prepare_env_config
 from icem_mpc.mpc_utils import trajectory_player, cost_traj_mpc_tensor, dynamics_mpc_wrapper_tensor

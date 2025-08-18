@@ -167,13 +167,11 @@ class ReachPoseEnv(MujocoEnv):
         else:
             self.reward_dict = reward_dict
         self.tip_body_names = [
-            "robot0:ffdistal",
-            "robot0:mfdistal",
-            "robot0:rfdistal",
-            "robot0:lfdistal",
-            "robot0:thdistal",
+            "F0/finger_distal",
+            "F1/finger_distal",
+            "F2/finger_distal"
         ]
-        self.palm_name = "robot0:palm"
+        self.palm_name = "hand_base"
         self.action_space = self.init_action_space(config.model_path_hand)
 
         super().__init__(

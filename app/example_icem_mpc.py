@@ -12,7 +12,7 @@ from icem_mpc.config_crearor import prepare_env_config
 
 def run_mpc():
     POSE_NUM, obj_name, key_body_final_pos, config, final_hand_joint_pose = prepare_env_config(
-        obj_name="core-bowl-a593e8863200fdb0664b3b9b23ddfcbc", pose_num=4
+        obj_name="core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03", pose_num=0
     )
 
     reward_dict = {
