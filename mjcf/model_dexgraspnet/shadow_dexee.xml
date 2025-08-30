@@ -24,27 +24,27 @@
       <joint damping="0.5"/>
       <default class="wrist_r_y">
         <joint axis="0 1 0" range="-3.14 3.14"/>
-        <position kp="20" kv = "2" ctrlrange="-3.14 3.14" forcerange="-20 20"/>
+        <position kp="50" kv = "2" ctrlrange="-3.14 3.14" forcerange="-20 20"/>
       </default>
       <default class="wrist_r_x">
         <joint axis="1 0 0" range="-3.14 3.14"/>
-        <position kp="20" kv = "2" ctrlrange="-3.14 3.14" forcerange="-20 20"/>
+        <position kp="50" kv = "2" ctrlrange="-3.14 3.14" forcerange="-20 20"/>
       </default>
       <default class="wrist_r_z">
         <joint axis="0 0 1" range="-3.14 3.14"/>
-        <position kp="20" kv = "2" ctrlrange="-3.14 3.14" forcerange="-20 20"/>
+        <position kp="50" kv = "2" ctrlrange="-3.14 3.14" forcerange="-20 20"/>
       </default>
       <default class="wrist_t_x">
         <joint axis="1 0 0" range="-2 2" type = "slide" damping="1"/>
-        <position kp="50" kv = "2" ctrlrange="-2 2" forcerange="-40 40"/>
+        <position kp="150" kv = "2" ctrlrange="-2 2" forcerange="-80 80"/>
       </default>
       <default class="wrist_t_y">
-        <joint axis="0 1 0" range="-2 2" type = "slide" damping="1"/>
-        <position kp="50" kv = "2" ctrlrange="-2 2" forcerange="-40 40"/>
+        <joint axis="0 1 0" range="-2 2" type = "slide" damping="2"/>
+        <position kp="150" kv = "2" ctrlrange="-2 2" forcerange="-80 80"/>
       </default>
       <default class="wrist_t_z">
-        <joint axis="0 0 1" range="-2 2" type = "slide" damping="0" />
-        <position kp="50" kv = "2" ctrlrange="-2 2" forcerange="-30 30" />
+        <joint axis="0 0 1" range="-2 2" type = "slide" damping="1" />
+        <position kp="150" kv = "2" ctrlrange="-2 2" forcerange="-80 80" />
       </default>
     </default>
   </default>
@@ -123,6 +123,7 @@
   </extension>
 
   <worldbody>
+    <camera name="static" mode="fixed" pos="0 -1 0" euler="1.571 0 0"/>
     <light pos="1 0 2"/>
     <site name="tcp" type="sphere" rgba="1 0.5 0 0.2" size="0.001" pos="0 0 0.3"/>
     <site name="attachment_site" type="sphere" group="3" rgba="1 0 0 1" size="0.001"/>
@@ -133,12 +134,13 @@
       <joint name="WRJRz" class="wrist_r_z"/>
       <joint name="WRJRy"  class="wrist_r_y"/>
       <joint name="WRJRx" class="wrist_r_x" />
-      <geom name="hand_base_geom" material="jet_black" type="mesh" contype="0" conaffinity="0" mass="0.51"
+      <camera name="mobile" mode="fixed" pos="0 -.4 .15" euler="-1.02 3.141 0"/>
+      <geom name="hand_base_geom" material="jet_black" type="mesh" contype="0" conaffinity="0" mass="0.051"
         mesh="r3_config1_base"/>
       <body pos="0 0.05 0.017" quat="1 0 0 0" name="F0/">
         <body name="F0/finger_base" gravcomp="1">
           <site name="F0/attachment_site"/>
-          <geom name="F0/base_geom" class="finger_visual" mass="0.89937782" mesh="r3_finger_base"/>
+          <geom name="F0/base_geom" class="finger_visual" mass="0.089937782" mesh="r3_finger_base"/>
           <geom name="F0/base_tb_geom" class="finger_visual" mass="0" mesh="r3_finger_base_tb"/>
           <geom name="F0/base_cover_geom" class="finger_visual" material="jet_black" mass="0" mesh="r3_finger_cover"/>
           <geom name="F0/base_pulley_block_geom" class="finger_visual" mass="0" mesh="r3_finger_pulley_block"/>
@@ -218,7 +220,7 @@
       <body pos="0.039 -0.029 0.017" quat="-0.16212752892551119 0 0 0.98676981326168844" name="F1/">
         <body name="F1/finger_base" gravcomp="1">
           <site name="F1/attachment_site"/>
-          <geom name="F1/base_geom" class="finger_visual" mass="0.89937782" mesh="r3_finger_base"/>
+          <geom name="F1/base_geom" class="finger_visual" mass="0.089937782" mesh="r3_finger_base"/>
           <geom name="F1/base_tb_geom" class="finger_visual" mass="0" mesh="r3_finger_base_tb"/>
           <geom name="F1/base_cover_geom" class="finger_visual" material="jet_black" mass="0" mesh="r3_finger_cover"/>
           <geom name="F1/base_pulley_block_geom" class="finger_visual" mass="0" mesh="r3_finger_pulley_block"/>
@@ -295,7 +297,7 @@
       <body pos="-0.039 -0.029 0.017" quat="0.16212752892551119 0 0 0.98676981326168844" name="F2/">
         <body name="F2/finger_base" gravcomp="1">
           <site name="F2/attachment_site"/>
-          <geom name="F2/base_geom" class="finger_visual" mass="0.89937782" mesh="r3_finger_base"/>
+          <geom name="F2/base_geom" class="finger_visual" mass="0.089937782" mesh="r3_finger_base"/>
           <geom name="F2/base_tb_geom" class="finger_visual" mass="0" mesh="r3_finger_base_tb"/>
           <geom name="F2/base_cover_geom" class="finger_visual" material="jet_black" mass="0" mesh="r3_finger_cover"/>
           <geom name="F2/base_pulley_block_geom" class="finger_visual" mass="0" mesh="r3_finger_pulley_block"/>

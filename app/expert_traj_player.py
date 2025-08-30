@@ -8,7 +8,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-file_name = "experts_traj_shadow_dexee/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03_POSENUM_6_dict_values__1_571__0_0__0_0___0_3__0_1__0_0__.npz"
+file_name = "experts_traj_shadow_dexee/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03_POSENUM_0_dict_values__1_571__0_0__0_0___0_3__0_1__0_0__.npz"
 
 load_file = np.load(file=file_name, allow_pickle=True, fix_imports=True)
 
@@ -37,4 +37,4 @@ config_icem.num_samples_after_reset = 100
 config_icem.reset_penalty_thr = -0.8
 config_icem.num_elites_after_reset = 60
 
-trajectory_player(env, action_seq)
+trajectory_player(env, action_seq, file_name=file_name[:-4])

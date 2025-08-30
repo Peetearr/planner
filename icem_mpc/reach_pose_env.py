@@ -144,6 +144,8 @@ class ReachPoseEnv(MujocoEnv):
         width=640,
         height=480,
         key_pose_dict: Optional[dict] = None,
+        kinematics_debug = False,
+        disable_collide = False,
         **kwargs,
     ):
         self.obj_scale = config.obj_scale
@@ -157,7 +159,7 @@ class ReachPoseEnv(MujocoEnv):
         self.width = width
         self.height = height
         self.key_pose_dict = key_pose_dict
-        self.kinematics_debug = False
+        self.kinematics_debug = kinematics_debug
         if reward_dict is None:
             self.reward_dict = {
                 "distance_key_points": 1,
@@ -173,7 +175,7 @@ class ReachPoseEnv(MujocoEnv):
         ]
         self.palm_name = "hand_base"
         self.action_space = self.init_action_space(config.model_path_hand)
-
+        self.disable_collide = disable_collide
         super().__init__(
             model_path=config.model_path_hand,
             frame_skip=config.frame_skip,
@@ -241,6 +243,9 @@ class ReachPoseEnv(MujocoEnv):
         # self.s
         composite_model.vis.global_.offwidth = self.width
         composite_model.vis.global_.offheight = self.height
+        start_mount_joint = {"F0_J1": -1.2, "F1_J1": -1.2, "F2_J1": -1.2}
+        set_position_kinematics(composite_data, start_mount_joint)
+
 
         self.init_qpos = composite_data.qpos.ravel().copy()
         self.init_qvel = composite_data.qvel.ravel().copy()
@@ -249,7 +254,8 @@ class ReachPoseEnv(MujocoEnv):
 
     def simultion_settings(self, spec: mujoco.MjSpec):
         spec.option.integrator = mujoco.mjtIntegrator.mjINT_IMPLICIT  # type: ignore
-        # spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
+        if self.disable_collide:
+            spec.option.disableflags |= mujoco.mjtDisableBit.mjDSBL_CONTACT
         spec.option.timestep = 0.0025
 
     def add_graspable_object_spec(self, spec):

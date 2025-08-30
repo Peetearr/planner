@@ -180,13 +180,14 @@ def create_file_name_based_position(
     return filename
 
 
-def process_single_config(config_i, reward_dict, config_icem, obj_name, folder):
+def process_single_config(config_i, reward_dict, config_icem, obj_name, folder, render_mode = None):
     """Helper function to process a single configuration"""
     action_seq, costs_seq, full_observations, ellites_trj = run_icem_from_config(
         reward_dict=reward_dict,
         confi_icem=config_icem,
         key_body_final_pos=config_i["key_body_final_pos"],
         config=config_i["config"],
+        render_mode=render_mode
     )
 
     file_name = create_file_name_based_position(
