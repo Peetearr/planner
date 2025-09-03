@@ -8,7 +8,7 @@ from icem_mpc.grasp_env_utils import (
 )
 from icem_mpc.reach_pose_env import ReachPoseEnvConfig, convert_pose_dexgraspnet_to_mujoco
 
-def prepare_env_config(frame_skip=4, pose_num=10, obj_name="core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03", hand_name="shadow_dexee"):
+def prepare_env_config(frame_skip=4, pose_num=10, obj_name="core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03", hand_name="shadow_dexee", num_init=3):
 
     pos_path_name = "final_positions/" + hand_name + "/" + obj_name + ".npy"
     mesh_path = "mjcf/model_dexgraspnet/meshes/objs/" + obj_name + "/coacd"
@@ -57,14 +57,22 @@ def prepare_env_config(frame_skip=4, pose_num=10, obj_name="core-mug-8570d9a8d24
     final_act_pose_sh_hand = convert_pose_dexgraspnet_to_mujoco(qpos_hand, default_mapping)
     key_body_final_pos = get_final_bodies_pose(qpos_hand, model_path_hand)
 
-    init_wirst_pose = {
-        "WRJRx": np.deg2rad(90),
-        "WRJRy": 0,
-        "WRJRz": 0,
-        "WRJTx": 0,
-        "WRJTy": 0,
-        "WRJTz": 0.2,
-    }
+    init_wirst_pose=[{
+                        "WRJRx": np.deg2rad(90),
+                        "WRJRy": 0,
+                        "WRJRz": 0,
+                        "WRJTx": 0,
+                        "WRJTy": 0,
+                        "WRJTz": 0.2,
+                    },
+                    {
+                        "WRJRx": np.deg2rad(90),
+                        "WRJRy": 0,
+                        "WRJRz": 0,
+                        "WRJTx": 0,
+                        "WRJTy": 0,
+                        "WRJTz": 0.2,
+                    }]
 
     config = ReachPoseEnvConfig(
         hand_final_full_pose=qpos_hand,

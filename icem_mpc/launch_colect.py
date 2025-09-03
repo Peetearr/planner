@@ -144,13 +144,13 @@ def run_icem_from_config(
     return action_seq, costs_seq, full_observations, ellites_trj
 
 
-def create_configs_for_env(obj_path: str, pose_nums: list[int] = [0, 1, 2]):
+def create_configs_for_env(obj_path: str, pose_nums: list[int] = [0, 1, 2], num_init = 3):
     start_poses, x_pose, y_pose = get_tabale_top_start_pos()
     start_p_num = itertools.product(start_poses, pose_nums)
     env_config_list = []
     for start_pose_hand_i, pose_num_i in start_p_num:
         pose_num, obj_name, key_body_final_pos, config, final_act_pose_sh_hand = prepare_env_config(
-            pose_num=pose_num_i, obj_name=obj_path
+            pose_num=pose_num_i, obj_name=obj_path, num_init=num_init
         )
         config.hand_starting_pose = start_pose_hand_i
         conif_dict = {
@@ -217,6 +217,7 @@ def run_object_run(
     obj_name: str = "core-bowl-a593e8863200fdb0664b3b9b23ddfcbc",
     folder: str = "experts_traj",
     n_jobs: int = 1,
+    num_init = 3
 ):
     """
     Run iCEM MPC optimization in parallel using joblib
@@ -229,7 +230,7 @@ def run_object_run(
         folder: Output folder for saving results
         n_jobs: Number of parallel jobs (-1 means using all processors)
     """
-    configs_and_info = create_configs_for_env(obj_name, pose_nums)
+    configs_and_info = create_configs_for_env(obj_name, pose_nums, num_init=num_init)
 
     start_time = time.time()
 

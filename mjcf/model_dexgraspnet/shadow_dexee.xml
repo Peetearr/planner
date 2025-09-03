@@ -81,6 +81,7 @@
     <mesh name="r3_finger_distal_sensor" file="MRH-F-Distal-Sensor-Visual,00.stl" refquat="0 -1 0 0"/>
     <mesh name="r3_finger_distal_col" file="MRH-F-Distal-Visual,00.stl" refquat="0 0 0 1"/>
     <mesh name="r3_finger_distal_tip_col" file="MRH-F-Distal-Sensor-Visual,00.stl" refquat="0 -1 0 0"/>
+    <mesh name="sphere" file="sphere.obj" scale=".015 .015 .015"/>
   </asset>
 
   <extension>
@@ -127,6 +128,9 @@
     <light pos="1 0 2"/>
     <site name="tcp" type="sphere" rgba="1 0.5 0 0.2" size="0.001" pos="0 0 0.3"/>
     <site name="attachment_site" type="sphere" group="3" rgba="1 0 0 1" size="0.001"/>
+    <body pos="0 0 -.3">
+      <geom name="sphere" type="mesh" mesh="sphere" rgba=".2 .2 .2 .2"/>
+    </body>
     <body name="hand_base" gravcomp="1" euler="0 0 3.1416">
       <joint name="WRJTx" class="wrist_t_x"/>
       <joint name="WRJTy" class="wrist_t_y"/>
