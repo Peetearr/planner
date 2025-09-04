@@ -145,12 +145,12 @@ def run_icem_from_config(
 
 
 def create_configs_for_env(obj_path: str, pose_nums: list[int] = [0, 1, 2], num_init = 3):
-    start_poses, x_pose, y_pose = get_tabale_top_start_pos()
+    start_poses, x_pose, y_pose = get_tabale_top_start_pos(num_init)
     start_p_num = itertools.product(start_poses, pose_nums)
     env_config_list = []
     for start_pose_hand_i, pose_num_i in start_p_num:
         pose_num, obj_name, key_body_final_pos, config, final_act_pose_sh_hand = prepare_env_config(
-            pose_num=pose_num_i, obj_name=obj_path, num_init=num_init
+            pose_num=pose_num_i, obj_name=obj_path
         )
         config.hand_starting_pose = start_pose_hand_i
         conif_dict = {

@@ -32,5 +32,5 @@ run_object_run(
     pose_nums=pose_nums,
     folder="experts_traj_" + hand_name,
     n_jobs=10,
-    num_init=len(pose_nums)
+    num_init=10
 )

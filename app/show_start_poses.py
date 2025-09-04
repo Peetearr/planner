@@ -11,7 +11,7 @@ DEFAULT_CAMERA_CONFIG = {
 
 def show_start_poses():
     POSE_NUM, obj_name, key_body_final_pos, config, final_act_pose_sh_hand = prepare_env_config()
-    start_poses, x_pose, y_pose = get_tabale_top_start_pos()
+    start_poses, x_pose, y_pose = get_tabale_top_start_pos(5)
     # key_body_final_pos = 1
     print(key_body_final_pos)
 
@@ -25,12 +25,16 @@ def show_start_poses():
             width=1600,
             height=1200,
         )
+        print(st_pose)
         env.kinematics_debug = True
         act = np.zeros(len(env.action_space.sample()))
-        act[-12:] = [0, -1.2, 0, -0.5, 0.2, -1.2, 0, -0.5, -0.2, -1.2, 0, -0.5]
-        for _ in range(100):
+        act = [st_pose['WRJTx'], st_pose['WRJTy'], st_pose['WRJTz'], st_pose['WRJRx'], st_pose['WRJRy'], st_pose['WRJRz'], 
+               st_pose['WRJTx'], st_pose['WRJTy'], st_pose['WRJTz'], st_pose['WRJRx'], st_pose['WRJRy'], st_pose['WRJRz'], 
+               st_pose['WRJTx'], st_pose['WRJTy'], st_pose['WRJTz'], st_pose['WRJRx'], st_pose['WRJRy'], st_pose['WRJRz']]
+        
+        for _ in range(1):
             reduced_obs, reward, _, _, debug_dict = env.step(act)
-            time.sleep(0.005)
+            time.sleep(2)
 
         env.close()
 

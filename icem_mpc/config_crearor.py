@@ -1,6 +1,13 @@
 from copy import deepcopy
 import numpy as np
 import transforms3d.euler as euler
+
+import torch
+from pytorch3d.io import load_objs_as_meshes
+from pytorch3d.structures import Meshes
+from pytorch3d.ops import sample_points_from_meshes
+from pytorch3d.ops import sample_farthest_points
+
 from icem_mpc.grasp_env_utils import (
     default_mapping,
     get_final_bodies_pose,
@@ -8,7 +15,7 @@ from icem_mpc.grasp_env_utils import (
 )
 from icem_mpc.reach_pose_env import ReachPoseEnvConfig, convert_pose_dexgraspnet_to_mujoco
 
-def prepare_env_config(frame_skip=4, pose_num=10, obj_name="core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03", hand_name="shadow_dexee", num_init=3):
+def prepare_env_config(frame_skip=4, pose_num=10, obj_name="core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03", hand_name="shadow_dexee"):
 
     pos_path_name = "final_positions/" + hand_name + "/" + obj_name + ".npy"
     mesh_path = "mjcf/model_dexgraspnet/meshes/objs/" + obj_name + "/coacd"
@@ -57,23 +64,14 @@ def prepare_env_config(frame_skip=4, pose_num=10, obj_name="core-mug-8570d9a8d24
     final_act_pose_sh_hand = convert_pose_dexgraspnet_to_mujoco(qpos_hand, default_mapping)
     key_body_final_pos = get_final_bodies_pose(qpos_hand, model_path_hand)
 
-    init_wirst_pose=[{
+    init_wirst_pose={
                         "WRJRx": np.deg2rad(90),
                         "WRJRy": 0,
                         "WRJRz": 0,
                         "WRJTx": 0,
                         "WRJTy": 0,
-                        "WRJTz": 0.2,
-                    },
-                    {
-                        "WRJRx": np.deg2rad(90),
-                        "WRJRy": 0,
-                        "WRJRz": 0,
-                        "WRJTx": 0,
-                        "WRJTy": 0,
-                        "WRJTz": 0.2,
-                    }]
-
+                        "WRJTz": .2,
+                    }
     config = ReachPoseEnvConfig(
         hand_final_full_pose=qpos_hand,
         model_path_hand=model_path_hand,
@@ -88,11 +86,26 @@ def prepare_env_config(frame_skip=4, pose_num=10, obj_name="core-mug-8570d9a8d24
     return pose_num, obj_name, key_body_final_pos, config, final_act_pose_sh_hand
 
 
-def get_tabale_top_start_pos():
+def get_tabale_top_start_pos(num):
+    sphere = load_objs_as_meshes(["sphere.obj"])
+    # dense_cloud
+    dense_points = sample_points_from_meshes(
+        sphere,
+        num_samples=num*100,
+        return_normals=False
+    )
+
+    # cloud
+    points, _ = sample_farthest_points(
+        dense_points,
+        K=num,
+        random_start_point=True
+    )
+    points = points[0]
     offset_x = 0
     offset_y = 0.4
     square_size = 0.3
-    positions = 1
+    positions = num
     posible_x = np.linspace(-square_size + offset_x  , square_size + offset_x, positions)
     posible_y = np.linspace(-square_size + offset_y, square_size + offset_y, positions)
     xy_postions = np.meshgrid(posible_x, posible_y)
@@ -106,10 +119,18 @@ def get_tabale_top_start_pos():
         "WRJTz": 0,
     }
     pose_list = []
-    for x, y in zip(xy_postions[0].flatten(), xy_postions[1].flatten()):
+    for x, y, z in points:
+
         init_wirst_pose["WRJTx"] = x
         init_wirst_pose["WRJTy"] = y
+        init_wirst_pose["WRJTz"] = z
         pos = deepcopy(init_wirst_pose)
         pose_list.append(pos)
+
+        n = np.sqrt(x**2 + y**2 + z**2)
+        x, y, z = -x/n, -y/n, -z/n
+        init_wirst_pose["WRJRx"] = np.arctan2(-y,z)
+        init_wirst_pose["WRJRy"] = np.arctan2(x,z)
+        init_wirst_pose["WRJRz"] = np.arctan2(y,x) - np.pi/2
     return pose_list, xy_postions[0].flatten(), xy_postions[1].flatten()
  
