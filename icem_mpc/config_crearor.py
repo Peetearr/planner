@@ -111,7 +111,7 @@ def get_tabale_top_start_pos(num):
     xy_postions = np.meshgrid(posible_x, posible_y)
 
     init_wirst_pose = {
-        "WRJRx": np.deg2rad(90),
+        "WRJRx": 0,
         "WRJRy": 0,
         "WRJRz": 0,
         "WRJTx": 0,
@@ -120,17 +120,18 @@ def get_tabale_top_start_pos(num):
     }
     pose_list = []
     for x, y, z in points:
-
-        init_wirst_pose["WRJTx"] = x
-        init_wirst_pose["WRJTy"] = y
-        init_wirst_pose["WRJTz"] = z
-        pos = deepcopy(init_wirst_pose)
-        pose_list.append(pos)
+        # x, y, z = -0.1270, -0.7925, 0.0737
+        init_wirst_pose["WRJTx"] = 1.5*x
+        init_wirst_pose["WRJTy"] = 1.5*y
+        init_wirst_pose["WRJTz"] = 1.5*z -.3
 
         n = np.sqrt(x**2 + y**2 + z**2)
         x, y, z = -x/n, -y/n, -z/n
         init_wirst_pose["WRJRx"] = np.arctan2(-y,z)
         init_wirst_pose["WRJRy"] = np.arctan2(x,z)
-        init_wirst_pose["WRJRz"] = np.arctan2(y,x) - np.pi/2
+        init_wirst_pose["WRJRz"] = np.arctan2(y,x)
+
+        pos = deepcopy(init_wirst_pose)
+        pose_list.append(pos)
     return pose_list, xy_postions[0].flatten(), xy_postions[1].flatten()
  

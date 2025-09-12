@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 hand_name = "shadow_dexee"
 folder = "experts_traj_" + hand_name + "/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03"
+# folder = "single_runner/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03"
 
 filenames = [y for x in os.walk(folder) for y in glob.glob(os.path.join(x[0], '*.npz'))]
 

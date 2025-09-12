@@ -2,14 +2,14 @@ from icem_mpc.launch_colect import ConfigICEM, run_object_run
 
 
 reward_dict = {
-    "distance_key_points": 1.5,
+    "distance_key_points": 3.0,
     "obj_displacement": 2.0,
     "diff_orient": 1.0,
     "obj_speed": 1.0,
 }
 config_icem = ConfigICEM()
 config_icem.horizon = 6
-config_icem.mpc_steps = 30
+config_icem.mpc_steps = 50
 config_icem.warmup_iters = 100
 config_icem.online_iters = 50
 config_icem.num_samples = 35
@@ -22,7 +22,7 @@ config_icem.num_samples_after_reset = 60
 config_icem.reset_penalty_thr = -0.5
 config_icem.num_elites_after_reset = 20
 
-pose_nums = [12]
+pose_nums = [0, 1, 2, 3, 4, 5, 6]
 
 hand_name="shadow_dexee"
 run_object_run(
@@ -31,6 +31,6 @@ run_object_run(
     obj_name="core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03",
     pose_nums=pose_nums,
     folder="experts_traj_" + hand_name,
-    n_jobs=10,
-    num_init=10
+    n_jobs=7,
+    num_init=1
 )
