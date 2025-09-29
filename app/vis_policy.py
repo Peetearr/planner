@@ -18,7 +18,7 @@ def random_point_on_sphere(radius=.4):
     
     return np.array([x, y, z])
 
-file_name = "experts_traj_shadow_dexee/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03_POSENUM_0_dict_values__1_571__0_0__0_0___0_3__0_1__0_0__.npz"
+file_name = "experts_traj_shadow_dexee/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03_POSENUM_0_dict_values__2_345___2_97___1_739__0_071__0_419__0_11__.npz"
 load_file = np.load(file=file_name, allow_pickle=True, fix_imports=True)
 
 pose_num = load_file["config_info"].item()["pose_num"]

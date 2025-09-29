@@ -62,7 +62,7 @@ def control_policy(reacher_pose_env: ReachPoseEnv, policy_path='model_weights.pt
 
 
 
-def trajectory_player(reacher_pose_env: ReachPoseEnv, action_seq, flying_camera = True, file_name = 'demos'):
+def trajectory_player(reacher_pose_env: ReachPoseEnv, action_seq, flying_camera = True, file_name = 'demos', cam=0):
     viewer = mujoco.viewer.launch_passive(reacher_pose_env.model, reacher_pose_env.data)
     dist_reward = []
     obj_displacement_reward = []
@@ -73,37 +73,42 @@ def trajectory_player(reacher_pose_env: ReachPoseEnv, action_seq, flying_camera 
     viewer.cam.lookat[2] += -0.25
 
     demo = []
+    cam_dict = ["mobile", "static"]
     with mujoco.Renderer(reacher_pose_env.model, 40, 60) as renderer:
         for action_i in action_seq:
             reacher_pose_env.data.ctrl = action_i
             ################
-            renderer.disable_depth_rendering()
-            renderer.enable_segmentation_rendering()
-            renderer.update_scene(reacher_pose_env.data, "mobile")
-            pixels = renderer.render()
-            pixels=pixels[:,:,0]
-            mask_hand = 1.0*((pixels < 95) & (pixels > 0))
-            mask_obj = 1.0*(pixels > 95)
-            mask_hand[mask_hand==0] = 0
-            mask_obj[mask_obj==0] = 0
+            if cam>=0:
+                renderer.disable_depth_rendering()
+                renderer.enable_segmentation_rendering()
+                renderer.update_scene(reacher_pose_env.data, cam_dict[cam])
+                pixels = renderer.render()
+                pixels=pixels[:,:,0]
+                mask_hand = 1.0*((pixels < 95) & (pixels > 0))
+                mask_obj = 1.0*(pixels > 95)
+                mask_hand[mask_hand==0] = 0
+                mask_obj[mask_obj==0] = 0
 
-            # depth & masking
-            renderer.enable_depth_rendering()
-            renderer.update_scene(reacher_pose_env.data, "mobile")
-            pixels = renderer.render()
-            demo_hand = pixels * mask_hand
-            demo_obj = pixels * mask_obj
-            demo_hand[demo_hand == 0] = np.unique(demo_hand)[1]
-            try:
-                demo_obj[demo_obj == 0] = np.unique(demo_obj)[1]
-                demo_obj -= demo_obj.min()
-                demo_obj = demo_obj/(demo_obj.max() + 1e-10)
-            except:
-                pass
+                # depth & masking
+                renderer.enable_depth_rendering()
+                renderer.update_scene(reacher_pose_env.data, cam_dict[cam])
+                pixels = renderer.render()
+                demo_hand = pixels * mask_hand
+                demo_obj = pixels * mask_obj
+                try:
+                    demo_obj[demo_obj == 0] = np.unique(demo_obj)[1]
+                    demo_obj -= demo_obj.min()
+                    demo_obj = demo_obj/(demo_obj.max() + 1e-10)
+                except:
+                    pass
 
-            demo_hand -= demo_hand.min()
-            demo_hand = demo_hand/(demo_hand.max() + 1e-10)
-            demo.append(np.concatenate([demo_hand, demo_obj]).flatten())
+                try:
+                    demo_hand[demo_hand == 0] = np.unique(demo_hand)[1]
+                    demo_hand -= demo_hand.min()
+                    demo_hand = demo_hand/(demo_hand.max() + 1e-10)
+                except:
+                    pass
+                demo.append(np.concatenate([demo_hand, demo_obj]).flatten())
             ################
             for i in range(reacher_pose_env.frame_skip):
                 mujoco.mj_step(reacher_pose_env.model, reacher_pose_env.data)
@@ -121,23 +126,14 @@ def trajectory_player(reacher_pose_env: ReachPoseEnv, action_seq, flying_camera 
             viewer.cam.trackbodyid = reacher_pose_env.data.model.body(name="graspable_object").id
 
 
-    # reacher_pose_env.kinematics_debug = False
-    # for i in range(1000):
-    #     time.sleep(0.01)
-    #     viewer.sync()
-    #     if reacher_pose_env.kinematics_debug:
-    #         reacher_pose_env.render_mode = None
-    #         reacher_pose_env.step(0)
-    #     else:
-    #         if flying_camera:
-    #             viewer.cam.azimuth += 0.4
     viewer.close()
-    demos = {
-        'observation': np.array(demo),
-        'action': action_seq,
-    }
-    with open(file_name + '.pkl', 'wb') as f:
-        pickle.dump(demos, f)
+    if cam>=0:
+        demos = {
+            'observation': np.array(demo),
+            'action': action_seq,
+        }
+        with open(file_name + '_' + cam_dict[cam] + '.pkl', 'wb') as f:
+            pickle.dump(demos, f)
 
 
     # plt.figure()

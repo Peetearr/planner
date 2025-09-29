@@ -121,9 +121,9 @@ def get_tabale_top_start_pos(num):
     pose_list = []
     for x, y, z in points:
         # x, y, z = -0.1270, -0.7925, 0.0737
-        init_wirst_pose["WRJTx"] = 1.5*x
-        init_wirst_pose["WRJTy"] = 1.5*y
-        init_wirst_pose["WRJTz"] = 1.5*z -.3
+        init_wirst_pose["WRJTx"] = 1*x
+        init_wirst_pose["WRJTy"] = 1*y
+        init_wirst_pose["WRJTz"] = 1*z - .3
 
         n = np.sqrt(x**2 + y**2 + z**2)
         x, y, z = -x/n, -y/n, -z/n

@@ -22,7 +22,7 @@ config_icem.num_samples_after_reset = 60
 config_icem.reset_penalty_thr = -0.5
 config_icem.num_elites_after_reset = 20
 
-pose_nums = [0, 1, 2, 3, 4, 5, 6]
+pose_nums = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 
 hand_name="shadow_dexee"
 run_object_run(
@@ -31,6 +31,6 @@ run_object_run(
     obj_name="core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03",
     pose_nums=pose_nums,
     folder="experts_traj_" + hand_name,
-    n_jobs=7,
+    n_jobs=10,
     num_init=1
 )

@@ -27,8 +27,8 @@ def show_final_position(reacher_pose_env: ReachPoseEnv):
         for i in range(reacher_pose_env.frame_skip):
             
             mujoco.mj_step(reacher_pose_env.model, reacher_pose_env.data)
-            for i in range(25):
-                time.sleep(0.002)
+            for i in range(100):
+                time.sleep(.02)
                 viewer.sync()
             full_obs = reacher_pose_env._get_full_obs()
             rew, decompose = reacher_pose_env.reward(full_obs)

@@ -32,7 +32,7 @@ config_icem.num_elites_after_reset = 20
 
 hand_name = "dexee"
 
-configs_and_info = create_configs_for_env("core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03", [1, 2, 3])
+configs_and_info = create_configs_for_env("core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03", [0])
 process_single_config(
     configs_and_info[1], reward_dict, 
     config_icem, "core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03", 

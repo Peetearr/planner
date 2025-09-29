@@ -8,22 +8,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 hand_name = "shadow_dexee"
-folder = "experts_traj_" + hand_name + "/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03"
+folder = "experts_traj_" + hand_name + "/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03/valid_traj"
 # folder = "single_runner/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03"
 
-filenames = [y for x in os.walk(folder) for y in glob.glob(os.path.join(x[0], '*.npz'))]
+filenames = glob.glob(os.path.join(folder, '*.npz'))
 
 for file_name in filenames:
-    
-    load_file = np.load(file=file_name, allow_pickle=True, fix_imports=True)
-    pose_num = load_file["config_info"].item()["pose_num"]
-    name = load_file["config_info"].item()["obj_name"]
-    config = load_file["config_info"].item()["config"]
-    reward_dict = load_file["reward_dict"].item()
-    action_seq = load_file["action_seq"]
-    key_body_final_pos = load_file["config_info"].item()["key_body_final_pos"]
-    costs_seq = load_file["costs_seq"]
-    ellites_trj = load_file["ellites_trj"]
-    env = ReachPoseEnv(config=config, reward_dict=reward_dict, render_mode="human", key_pose_dict=key_body_final_pos)
+    if not os.path.exists(file_name.replace('.npz', '.pkl')):
+        print(file_name)
+        load_file = np.load(file=file_name, allow_pickle=True, fix_imports=True)
+        pose_num = load_file["config_info"].item()["pose_num"]
+        name = load_file["config_info"].item()["obj_name"]
+        config = load_file["config_info"].item()["config"]
+        reward_dict = load_file["reward_dict"].item()
+        action_seq = load_file["action_seq"]
+        key_body_final_pos = load_file["config_info"].item()["key_body_final_pos"]
+        costs_seq = load_file["costs_seq"]
+        ellites_trj = load_file["ellites_trj"]
+        env = ReachPoseEnv(config=config, reward_dict=reward_dict, render_mode="human", key_pose_dict=key_body_final_pos)
 
-    trajectory_player(env, action_seq,flying_camera=False, file_name=file_name[:-4])
+        trajectory_player(env, action_seq,flying_camera=False, file_name=file_name[:-4], cam=1)

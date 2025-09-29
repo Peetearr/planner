@@ -6,6 +6,7 @@ import numpy as np
 import os
 import glob
 
+torch.seed = 42
 dataset = []
 hand_name = "shadow_dexee"
 folder = "experts_traj_" + hand_name + "/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03"
@@ -25,10 +26,7 @@ for data in dataset:
     for i in range(len(a)):
         observations.append(o[i]['act_joint_pose'])
         actions.append(a[i])
-        print('ssa', a[i], o[i]['act_joint_pose'])
 observations = np.concat([observations])
 actions = np.concat([actions])
-print('act', actions)
-print('obs', observations)
-model = train_behavior_cloning(model, expert_observations=observations, expert_actions=actions)
+model = train_behavior_cloning(model, expert_observations=observations, expert_actions=actions, lr=1e-2, shed=[[300, 600, 800, 900], .1])
 torch.save(model.state_dict(), 'model_joints_weights.pth')

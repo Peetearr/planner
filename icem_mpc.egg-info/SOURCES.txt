@@ -1,6 +1,7 @@
 README.md
 setup.py
 icem_mpc/__init__.py
+icem_mpc/bc.py
 icem_mpc/config_crearor.py
 icem_mpc/grasp_env_utils.py
 icem_mpc/launch_colect.py

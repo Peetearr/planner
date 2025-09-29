@@ -4,7 +4,7 @@ from icem_mpc.reach_pose_env import ReachPoseEnv
 import numpy as np
 
 DEFAULT_CAMERA_CONFIG = {
-    "distance": 1.5,
+    "distance": 5.5,
     "azimuth": 90,
     "elevation": 90,
 }
@@ -26,15 +26,15 @@ def show_start_poses():
             height=1200,
         )
         print(st_pose)
-        env.kinematics_debug = True
+        env.kinematics_debug = False
         act = np.zeros(len(env.action_space.sample()))
-        act = [st_pose['WRJTx'], st_pose['WRJTy'], st_pose['WRJTz'], st_pose['WRJRx'], st_pose['WRJRy'], st_pose['WRJRz'], 
-               st_pose['WRJTx'], st_pose['WRJTy'], st_pose['WRJTz'], st_pose['WRJRx'], st_pose['WRJRy'], st_pose['WRJRz'], 
-               st_pose['WRJTx'], st_pose['WRJTy'], st_pose['WRJTz'], st_pose['WRJRx'], st_pose['WRJRy'], st_pose['WRJRz']]
+        act = [st_pose['WRJRx'], st_pose['WRJRy'], st_pose['WRJRz'], 
+               st_pose['WRJTx'], st_pose['WRJTy'], st_pose['WRJTz'], 
+               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         
-        for _ in range(1):
+        for _ in range(100):
             reduced_obs, reward, _, _, debug_dict = env.step(act)
-            time.sleep(2)
+            time.sleep(.02)
 
         env.close()
 

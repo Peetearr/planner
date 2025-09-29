@@ -145,7 +145,7 @@ class ReachPoseEnv(MujocoEnv):
         height=480,
         key_pose_dict: Optional[dict] = None,
         kinematics_debug = False,
-        disable_collide = False,
+        disable_collide = True,
         **kwargs,
     ):
         self.obj_scale = config.obj_scale
@@ -245,7 +245,6 @@ class ReachPoseEnv(MujocoEnv):
         composite_model.vis.global_.offheight = self.height
         start_mount_joint = {"F0_J1": -1.2, "F1_J1": -1.2, "F2_J1": -1.2}
         set_position_kinematics(composite_data, start_mount_joint)
-
 
         self.init_qpos = composite_data.qpos.ravel().copy()
         self.init_qvel = composite_data.qvel.ravel().copy()
