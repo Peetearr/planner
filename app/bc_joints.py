@@ -9,7 +9,7 @@ import glob
 torch.seed = 42
 dataset = []
 hand_name = "shadow_dexee"
-folder = "experts_traj_" + hand_name + "/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03"
+folder = "experts_traj_" + hand_name + "/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03/valid_traj"
 filenames = [y for x in os.walk(folder) for y in glob.glob(os.path.join(x[0], '*.npz'))]
 
 for file_name in filenames:
@@ -28,5 +28,5 @@ for data in dataset:
         actions.append(a[i])
 observations = np.concat([observations])
 actions = np.concat([actions])
-model = train_behavior_cloning(model, expert_observations=observations, expert_actions=actions, lr=1e-2, shed=[[300, 600, 800, 900], .1])
-torch.save(model.state_dict(), 'model_joints_weights.pth')
+model = train_behavior_cloning(model, expert_observations=observations, expert_actions=actions, lr=1e-4, shed=[[300, 600, 800, 900], 1])
+torch.save(model.state_dict(), 'model_weights_joints.pth')

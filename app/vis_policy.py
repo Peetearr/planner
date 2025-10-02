@@ -34,4 +34,4 @@ for _ in range(10):
     key_body_final_pos = load_file["config_info"].item()["key_body_final_pos"]
     env = ReachPoseEnv(config=config, reward_dict=reward_dict, render_mode="human", key_pose_dict=key_body_final_pos)
 
-    control_policy(env)
+    control_policy(env, camera_name='mobile')

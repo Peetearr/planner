@@ -10,55 +10,90 @@ from icem_mpc.bc import BC
 
 import pickle
 
-def control_policy(reacher_pose_env: ReachPoseEnv, policy_path='model_weights.pth'):
-    model = BC(4800, 18)
+def camera_observation(model, data, camera_name="mobile"):
+    renderer = mujoco.Renderer(model, 40, 60)
+    renderer.disable_depth_rendering()
+    renderer.enable_segmentation_rendering()
+    renderer.update_scene(data, camera_name)
+    pixels = renderer.render()
+    pixels=pixels[:,:,0]
+    mask_hand = 1.0*((pixels < 95) & (pixels > 0))
+    mask_obj = 1.0*(pixels > 95)
+    mask_hand[mask_hand==0] = 0
+    mask_obj[mask_obj==0] = 0
+
+    renderer.enable_depth_rendering()
+    renderer.update_scene(data, camera_name)
+    pixels = renderer.render()
+    demo_hand = pixels * mask_hand
+    demo_obj = pixels * mask_obj
+    try:
+        demo_obj[demo_obj == 0] = np.unique(demo_obj)[1]
+        demo_obj -= demo_obj.min()
+        demo_obj = demo_obj/(demo_obj.max() + 1e-10)
+    except:
+        pass
+
+    try:
+        demo_hand[demo_hand == 0] = np.unique(demo_hand)[1]
+        demo_hand -= demo_hand.min()
+        demo_hand = demo_hand/(demo_hand.max() + 1e-10)
+    except:
+        pass
+    return demo_hand, demo_obj
+
+def joints_observation():
+    pass
+
+def control_policy(reacher_pose_env: ReachPoseEnv, camera_name='joints', visualise=True, reward_flag=False):
+    policy_path = 'model_weights_' + camera_name + '.pth'
+    model = BC(4800*(camera_name!='joints') + 18*(camera_name=='joints'), 18)
     model.load_state_dict(torch.load(policy_path))
     model.eval()
 
-    viewer = mujoco.viewer.launch_passive(reacher_pose_env.model, reacher_pose_env.data)
+    if visualise == True:
+        viewer = mujoco.viewer.launch_passive(reacher_pose_env.model, reacher_pose_env.data)
     
-    viewer.cam.distance = 1
-    viewer.cam.elevation = -20
-    viewer.cam.lookat[2] += -0.25
+        viewer.cam.distance = 1
+        viewer.cam.elevation = -20
+        viewer.cam.lookat[2] += -0.25
 
     renderer = mujoco.Renderer(reacher_pose_env.model, 40, 60)
+
+    contact = 0
     while reacher_pose_env.data.time < .5:
         # get state
-        renderer.disable_depth_rendering()
-        renderer.enable_segmentation_rendering()
-        renderer.update_scene(reacher_pose_env.data, "mobile")
-        pixels = renderer.render()
-        pixels=pixels[:,:,0]
-        mask_hand = 1.0*((pixels < 95) & (pixels > 0))
-        mask_obj = 1.0*(pixels > 95)
-        mask_hand[mask_hand==0] = 0
-        mask_obj[mask_obj==0] = 0
-
-        renderer.enable_depth_rendering()
-        renderer.update_scene(reacher_pose_env.data, "mobile")
-        pixels = renderer.render()
-        demo_hand = pixels * mask_hand
-        demo_obj = pixels * mask_obj
-        try:
-            demo_obj[demo_obj == 0] = np.unique(demo_obj)[1]
-            demo_obj -= demo_obj.min()
-            demo_obj = demo_obj/(demo_obj.max() + 1e-10)
-        except:
-            pass
-
-        try:
-            demo_hand[demo_hand == 0] = np.unique(demo_hand)[1]
-            demo_hand -= demo_hand.min()
-            demo_hand = demo_hand/(demo_hand.max() + 1e-10)
-        except:
-            pass
-
-        obs = np.concatenate([demo_hand, demo_obj]).flatten()
+        if camera_name != 'joints':
+            demo_hand, demo_obj = camera_observation(reacher_pose_env.model, reacher_pose_env.data, camera_name)
+            obs = np.concatenate([demo_hand, demo_obj]).flatten()
+        else:
+            a = reacher_pose_env.data.qpos
+            obs = np.concatenate([a[6:18], np.array([a[5], a[4], a[3], a[0], a[1], a[2]])])
         reacher_pose_env.data.ctrl = model.forward(torch.tensor(obs, dtype=torch.float32)).detach().numpy()
+
+        for i in range(reacher_pose_env.data.ncon):
+          geom1_id = reacher_pose_env.data.contact[i].geom1
+          geom2_id = reacher_pose_env.data.contact[i].geom2
+
+          body1_id = reacher_pose_env.model.geom_bodyid[geom1_id]
+          body2_id = reacher_pose_env.model.geom_bodyid[geom2_id]
+
+          body1_name = reacher_pose_env.model.body(body1_id).name
+          body2_name = reacher_pose_env.model.body(body2_id).name
+        #   print(body1_name, body2_name)
+
+          if (body1_name == 'graspable_object' and body2_name != 'world') or \
+          (body2_name == 'graspable_object' and body1_name != 'world'):
+            contact += .002
+        # dist = reacher_pose_env.reward(reacher_pose_env._get_full_obs(), reacher_pose_env.data.ctrl)[1]["distance_key_points"]
+        # if max_reward < dist: max_reward = dist
         mujoco.mj_step(reacher_pose_env.model, reacher_pose_env.data)
-        time.sleep(0.02)
-        viewer.sync()
-    viewer.close()
+        if visualise == True:
+            viewer.sync()
+    if visualise == True:
+        viewer.close()
+    if reward_flag:
+        return contact
 
 
 

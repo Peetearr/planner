@@ -9,6 +9,7 @@ import numpy as np
 import pickle
 import os
 import glob
+import argparse
 
 writer = SummaryWriter('runs/fashion_mnist_experiment_1')
 
@@ -96,10 +97,14 @@ def train_behavior_cloning(model, expert_observations, expert_actions, epochs=10
     return model
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--camera_name', default='mobile')
+    args = parser.parse_args()
+
     torch.seed = 42
     dataset = []
     hand_name = "shadow_dexee"
-    camera_name = "mobile"
+    camera_name = args.camera_name
     folder = "experts_traj_" + hand_name + "/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03/valid_traj"
     filenames = [y for x in os.walk(folder) for y in glob.glob(os.path.join(x[0], '*_' + camera_name + '.pkl'))]
 
@@ -120,4 +125,4 @@ if __name__ == "__main__":
     actions = np.concat([*actions])
     print(np.unique(observations))
     model = train_behavior_cloning(model, expert_observations=observations, expert_actions=actions)
-    torch.save(model.state_dict(), 'model_weights.pth')
+    torch.save(model.state_dict(), 'model_weights_' + camera_name + '.pth')

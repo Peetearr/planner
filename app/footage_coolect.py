@@ -6,7 +6,13 @@ from icem_mpc.mpc_utils import trajectory_player
 from icem_mpc.reach_pose_env import ReachPoseEnv
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--n_camera', default='0')
+args = parser.parse_args()
+
+n_cam = int(args.n_camera)
 hand_name = "shadow_dexee"
 folder = "experts_traj_" + hand_name + "/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03/valid_traj"
 # folder = "single_runner/core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03"

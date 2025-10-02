@@ -28,7 +28,7 @@ hand_name="shadow_dexee"
 run_object_run(
     reward_dict,
     config_icem,
-    obj_name="core-mug-8570d9a8d24cb0acbebd3c0c0c70fb03",
+    obj_name="sem-Bottle-437678d4bc6be981c8724d5673a063a6",
     pose_nums=pose_nums,
     folder="experts_traj_" + hand_name,
     n_jobs=10,
